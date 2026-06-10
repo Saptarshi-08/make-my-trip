@@ -46,7 +46,7 @@ const HotelList = ({ onSelect }: any) => {
                 <TableBody>
                     {hotel.length > 0 ? (
                         hotel.map((hotel: any) => (
-                            <TableRow key={hotel._id}>
+                            <TableRow key={hotel.id}>
                                 <TableCell>{hotel.hotelName}</TableCell>
                                 <TableCell>{hotel.location}</TableCell>
                                 <TableCell>${hotel.pricePerNight}</TableCell>

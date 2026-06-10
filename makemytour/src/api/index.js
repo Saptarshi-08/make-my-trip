@@ -64,6 +64,7 @@ export const editprofile = async (
     return data;
   } catch (error) {}
 };
+
 export const getflight = async () => {
   try {
     const res = await axios.get(`${BACKEND_URL}/flight`);
@@ -201,5 +202,47 @@ export const handlehotelbooking = async (userId, hotelId, rooms, price) => {
     return data;
   } catch (error) {
     console.log(error);
+  }
+};
+
+export const cancelBooking = async (userId, bookingId, reason) => {
+  try {
+    const url =
+      `${BACKEND_URL}/booking/cancel` +
+      `?userId=${userId}` +
+      `&bookingId=${bookingId}` +
+      `&reason=${encodeURIComponent(reason)}`;
+
+    const res = await axios.post(url);
+
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateRefundStatus = async (userId, bookingId, status) => {
+  try {
+    const url =
+      `${BACKEND_URL}/booking/refund-status` +
+      `?userId=${userId}` +
+      `&bookingId=${bookingId}` +
+      `&status=${status}`;
+
+    const res = await axios.post(url);
+
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getAllUsers = async () => {
+  try {
+    const res = await axios.get(`${BACKEND_URL}/admin/users`);
+
+    return res.data;
+  } catch (error) {
+    throw error;
   }
 };

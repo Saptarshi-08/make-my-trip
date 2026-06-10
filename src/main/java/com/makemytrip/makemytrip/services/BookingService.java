@@ -9,8 +9,10 @@ import com.makemytrip.makemytrip.repositories.HotelRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class BookingService {
@@ -35,10 +37,18 @@ public class BookingService {
 
                 Booking booking=new Booking();
                 booking.setType("Flight");
-                booking.setBookingId(flightId);
-                booking.setDate(LocalDate.now().toString());
+                booking.setBookingId(UUID.randomUUID().toString());
+
+                booking.setBookingTime(LocalDateTime.now());
+
                 booking.setQuantity(seats);
                 booking.setTotalPrice(price);
+
+                booking.setBookingStatus("ACTIVE");
+                booking.setRefundAmount(0);
+                booking.setRefundStatus("NA");
+                booking.setCancellationReason(null);
+                booking.setCancellationTime(null);
                 user.getBookings().add(booking);
                 userRepository.save(user);
                 return booking;
@@ -60,10 +70,18 @@ public class BookingService {
 
                 Booking booking=new Booking();
                 booking.setType("Hotel");
-                booking.setBookingId(hotelId);
-                booking.setDate(LocalDate.now().toString());
+                booking.setBookingId(UUID.randomUUID().toString());
+
+                booking.setBookingTime(LocalDateTime.now());
+
                 booking.setQuantity(rooms);
                 booking.setTotalPrice(price);
+
+                booking.setBookingStatus("ACTIVE");
+                booking.setRefundAmount(0);
+                booking.setRefundStatus("NA");
+                booking.setCancellationReason(null);
+                booking.setCancellationTime(null);
                 user.getBookings().add(booking);
                 userRepository.save(user);
                 return booking;
@@ -73,5 +91,84 @@ public class BookingService {
         }
         throw new RuntimeException("User or flight not found");
     }
+    
+    public Booking cancelBooking(
+        String userId,
+        String bookingId,
+        String reason
+    ) {
 
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        for (Booking booking : user.getBookings()) {
+
+            if (booking.getBookingId().equals(bookingId)
+                    && !"CANCELLED".equals(
+                            booking.getBookingStatus())) {
+
+                Duration duration =
+                        Duration.between(
+                                booking.getBookingTime(),
+                                LocalDateTime.now());
+
+                double refundPercentage;
+
+                if (duration.toHours() <= 24) {
+                    refundPercentage = 0.50;
+                } else {
+                    refundPercentage = 0.25;
+                }
+
+                double refundAmount =
+                        booking.getTotalPrice()
+                                * refundPercentage;
+
+                booking.setBookingStatus("CANCELLED");
+
+                booking.setCancellationReason(reason);
+
+                booking.setCancellationTime(
+                        LocalDateTime.now());
+
+                booking.setRefundAmount(refundAmount);
+
+                booking.setRefundStatus("PENDING");
+
+                userRepository.save(user);
+
+                return booking;
+            }
+        }
+
+        throw new RuntimeException(
+                "Booking not found");
+    }
+
+    public Booking updateRefundStatus(
+        String userId,
+        String bookingId,
+        String status
+    ) {
+
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        for (Booking booking : user.getBookings()) {
+
+            if (booking.getBookingId().equals(bookingId)) {
+
+                booking.setRefundStatus(status);
+
+                userRepository.save(user);
+
+                return booking;
+            }
+        }
+
+        throw new RuntimeException(
+                "Booking not found");
+    }
 }

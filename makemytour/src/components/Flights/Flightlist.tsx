@@ -45,7 +45,7 @@ const FlightList = ({ onSelect }: any) => {
                 <TableBody>
                     {flight.length > 0 ? (
                         flight?.map((flight: any) => (
-                            <TableRow key={flight._id}>
+                            <TableRow key={flight.id}>
                                 <TableCell>{flight.flightName}</TableCell>
                                 <TableCell>{flight.from}</TableCell>
                                 <TableCell>{flight.to}</TableCell>

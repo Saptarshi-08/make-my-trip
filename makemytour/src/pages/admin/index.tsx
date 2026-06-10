@@ -28,6 +28,8 @@ import {
     editflight,
     edithotel,
     getuserbyemail,
+    getAllUsers,
+    updateRefundStatus
 } from "@/api";
 import HotelList from "@/components/Hotel/Hotel";
 const mockFlights = [
@@ -446,6 +448,195 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
     );
 }
 
+interface RefundBooking {
+    bookingId: string;
+    bookingStatus: string;
+    refundStatus: string;
+    refundAmount: number;
+}
+
+interface RefundUser {
+    id: string;
+    firstName: string;
+    bookings: RefundBooking[];
+}
+
+function RefundManagement() {
+
+    const [users, setUsers] = useState<RefundUser[]>([]);
+
+    useEffect(() => {
+
+        loadRefunds();
+
+    }, []);
+
+    const loadRefunds = async () => {
+
+        const data =
+            await getAllUsers();
+
+        setUsers(data);
+    };
+
+    const processRefund = async (
+        userId: String,
+        bookingId: String
+    ) => {
+
+        console.log({
+            userId,
+            bookingId
+        });
+        await updateRefundStatus(
+            userId,
+            bookingId,
+            "PROCESSED"
+        );
+
+        loadRefunds();
+    };
+
+    const completeRefund = async (
+        userId: String,
+        bookingId: String
+    ) => {
+
+        await updateRefundStatus(
+            userId,
+            bookingId,
+            "COMPLETED"
+        );
+
+        loadRefunds();
+    };
+
+    return (
+
+        <div className="space-y-4">
+
+            {
+                users.map((user) =>
+
+                    user.bookings?.map(
+                        (booking) => {
+
+                            if (
+                                booking.bookingStatus
+                                !== "CANCELLED"
+                            ) return null;
+
+                            return (
+
+                                <div
+                                    key={
+                                        booking.bookingId
+                                    }
+
+                                    className="
+                                        border
+                                        p-4
+                                        rounded
+                                    "
+                                >
+
+                                    <p>
+                                        <b>User:</b>
+                                        {" "}
+                                        {user.firstName}
+                                    </p>
+
+                                    <p>
+                                        <b>Booking:</b>
+                                        {" "}
+                                        {
+                                            booking.bookingId
+                                        }
+                                    </p>
+
+                                    <p>
+                                        <b>Refund:</b>
+                                        ₹
+                                        {
+                                            booking.refundAmount
+                                        }
+                                    </p>
+
+                                    <p>
+                                        <b>Status:</b>
+                                        {" "}
+                                        {
+                                            booking.refundStatus
+                                        }
+                                    </p>
+
+                                    {
+                                        booking.refundStatus
+                                        ===
+                                        "PENDING"
+                                        && (
+
+                                            <button
+                                                onClick={() =>
+                                                    processRefund(
+                                                        user.id,
+                                                        booking.bookingId
+                                                    )
+                                                }
+
+                                                className="
+                                                    bg-blue-500
+                                                    text-white
+                                                    px-3
+                                                    py-1
+                                                    rounded
+                                                    mt-2
+                                                "
+                                            >
+                                                Process
+                                            </button>
+                                        )
+                                    }
+
+                                    {
+                                        booking.refundStatus
+                                        ===
+                                        "PROCESSED"
+                                        && (
+
+                                            <button
+                                                onClick={() =>
+                                                    completeRefund(
+                                                        user.id,
+                                                        booking.bookingId
+                                                    )
+                                                }
+
+                                                className="
+                                                    bg-green-500
+                                                    text-white
+                                                    px-3
+                                                    py-1
+                                                    rounded
+                                                    mt-2
+                                                "
+                                            >
+                                                Complete
+                                            </button>
+                                        )
+                                    }
+
+                                </div>
+                            );
+                        }
+                    )
+                )
+            }
+
+        </div>
+    );
+}
+
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState("flights");
     const [selectedFlight, setSelectedFlight] = useState(null);
@@ -455,10 +646,11 @@ export default function AdminDashboard() {
         <div className="container mx-auto p-4 bg-white max-w-full">
             <h1 className="text-3xl font-bold mb-6 ">Admin Dashboard</h1>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-3  text-black">
+                <TabsList className="grid w-full grid-cols-4  text-black">
                     <TabsTrigger value="flights">Flights</TabsTrigger>
                     <TabsTrigger value="hotels">Hotels</TabsTrigger>
                     <TabsTrigger value="users">Users</TabsTrigger>
+                    <TabsTrigger value="refunds">Refunds</TabsTrigger>
                 </TabsList>
                 <TabsContent value="flights">
                     <Card>
@@ -501,6 +693,31 @@ export default function AdminDashboard() {
                         <CardContent>
                             <UserSearch />
                         </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="refunds">
+                    <Card>
+
+                        <CardHeader>
+
+                            <CardTitle>
+                                Refund Management
+                            </CardTitle>
+
+                            <CardDescription>
+
+                                Manage refund requests
+
+                            </CardDescription>
+
+                        </CardHeader>
+
+                        <CardContent>
+
+                            <RefundManagement />
+
+                        </CardContent>
+
                     </Card>
                 </TabsContent>
             </Tabs>

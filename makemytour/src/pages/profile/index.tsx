@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     User,
     Phone,
@@ -16,48 +16,41 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/router";
 import { clearUser, setUser } from "@/store";
-import { editprofile } from "@/api";
+import { editprofile, cancelBooking, getuserbyemail } from "@/api";
 const index = () => {
     const dispatch = useDispatch();
     const user = useSelector((state: any) => state.user.user);
     const router = useRouter();
+
+    useEffect(() => {
+        const refreshUser = async () => {
+            try {
+                if (!user?.email) return;
+
+                const updatedUser = await getuserbyemail(user.email);
+
+                dispatch(setUser(updatedUser));
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        refreshUser();
+    }, [user?.email]);
 
     const logout = () => {
         dispatch(clearUser());
         router.push("/");
     };
     const [isEditing, setIsEditing] = useState(false);
+    const [selectedReason, setSelectedReason] = useState<Record<string, string>>(
+        {},
+    );
     const [userData, setUserData] = useState({
         firstName: user?.firstName ? user?.firstName : "",
         lastName: user?.lastName ? user?.lastName : "",
         email: user?.email ? user?.email : "",
         phoneNumber: user?.phoneNumber ? user?.phoneNumber : "",
-        bookings: [
-            {
-                type: "Flight",
-                bookingId: "F123456",
-                date: "2024-03-25",
-                quantity: 2,
-                totalPrice: 12499,
-                details: {
-                    from: "Delhi",
-                    to: "Mumbai",
-                    airline: "IndiGo",
-                },
-            },
-            {
-                type: "Hotel",
-                bookingId: "H789012",
-                date: "2024-04-15",
-                quantity: 1,
-                totalPrice: 8999,
-                details: {
-                    name: "Taj Palace",
-                    location: "Goa",
-                    nights: 3,
-                },
-            },
-        ],
     });
 
     const [editForm, setEditForm] = useState({ ...userData });
@@ -68,13 +61,36 @@ const index = () => {
                 userData.firstName,
                 userData.lastName,
                 userData.email,
-                userData.phoneNumber
+                userData.phoneNumber,
             );
             dispatch(setUser(data));
             setIsEditing(false);
         } catch (error) {
             setUserData(editForm);
             setIsEditing(false);
+        }
+    };
+
+    const handleCancelBooking = async (bookingId: string) => {
+        const reason = selectedReason[bookingId];
+
+        if (!reason) {
+            alert("Please select a cancellation reason");
+            return;
+        }
+
+        try {
+            await cancelBooking(user?.id, bookingId, reason);
+
+            const updatedUser = await getuserbyemail(user.email);
+
+            dispatch(setUser(updatedUser));
+
+            alert("Booking cancelled successfully");
+        } catch (error) {
+            console.error(error);
+
+            alert("Unable to cancel booking");
         }
     };
 
@@ -120,7 +136,9 @@ const index = () => {
                                         <input
                                             type="text"
                                             value={userData.firstName}
-                                            onChange={(e) => handleEditFormChange("firstName", e.target.value)}
+                                            onChange={(e) =>
+                                                handleEditFormChange("firstName", e.target.value)
+                                            }
                                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                         />
                                     </div>
@@ -131,7 +149,9 @@ const index = () => {
                                         <input
                                             type="text"
                                             value={userData.lastName}
-                                            onChange={(e) => handleEditFormChange("lastName", e.target.value)}
+                                            onChange={(e) =>
+                                                handleEditFormChange("lastName", e.target.value)
+                                            }
                                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                         />
                                     </div>
@@ -142,8 +162,9 @@ const index = () => {
                                         <input
                                             type="email"
                                             value={userData.email}
-                                            onChange={(e) => handleEditFormChange("email", e.target.value)}
-
+                                            onChange={(e) =>
+                                                handleEditFormChange("email", e.target.value)
+                                            }
                                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                         />
                                     </div>
@@ -154,7 +175,9 @@ const index = () => {
                                         <input
                                             type="tel"
                                             value={userData.phoneNumber}
-                                            onChange={(e) => handleEditFormChange("phoneNumber", e.target.value)}
+                                            onChange={(e) =>
+                                                handleEditFormChange("phoneNumber", e.target.value)
+                                            }
                                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                         />
                                     </div>
@@ -214,52 +237,144 @@ const index = () => {
                         <div className="bg-white rounded-xl shadow-lg p-6">
                             <h2 className="text-2xl font-bold mb-6">My Bookings</h2>
                             <div className="space-y-6">
-                                {user?.bookings.map((booking: any, index: any) => (
-                                    <div
-                                        key={index}
-                                        className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                                    >
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="flex items-center space-x-3">
-                                                {booking?.type === "Flight" ? (
-                                                    <div className="bg-blue-100 p-2 rounded-lg">
-                                                        <Plane className="w-6 h-6 text-blue-600" />
+                                {user?.bookings
+                                    ?.filter((booking: any) => booking !== null)
+                                    .map((booking: any, index: any) => (
+                                        <div
+                                            key={index}
+                                            className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                                        >
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className="flex items-center space-x-3">
+                                                    {booking?.type === "Flight" ? (
+                                                        <div className="bg-blue-100 p-2 rounded-lg">
+                                                            <Plane className="w-6 h-6 text-blue-600" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="bg-green-100 p-2 rounded-lg">
+                                                            <Building2 className="w-6 h-6 text-green-600" />
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <h3 className="font-semibold">{booking?.type}</h3>
+                                                        <p className="text-sm text-gray-500">
+                                                            Booking ID: {booking?.bookingId}
+                                                        </p>
                                                     </div>
-                                                ) : (
-                                                    <div className="bg-green-100 p-2 rounded-lg">
-                                                        <Building2 className="w-6 h-6 text-green-600" />
-                                                    </div>
-                                                )}
-                                                <div>
-                                                    <h3 className="font-semibold">{booking?.type}</h3>
-                                                    <p className="text-sm text-gray-500">
-                                                        Booking ID: {booking?.bookingId}
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-semibold">
+                                                        ₹ {booking?.totalPrice.toLocaleString("en-IN")}
                                                     </p>
+                                                    <p className="text-sm text-gray-500">{booking?.type}</p>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="font-semibold">
-                                                    ₹ {booking?.totalPrice.toLocaleString("en-IN")}
-                                                </p>
-                                                <p className="text-sm text-gray-500">{booking?.type}</p>
+                                            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                                                <div className="flex items-center space-x-1">
+                                                    <Calendar className="w-4 h-4" />
+                                                    <span>
+                                                        {booking?.bookingTime
+                                                            ? formatDate(booking.bookingTime)
+                                                            : "N/A"}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center space-x-1">
+                                                    <MapPin className="w-4 h-4" />
+                                                    <span>{booking?.type}</span>
+                                                </div>
+                                                <div className="flex items-center space-x-1">
+                                                    <CreditCard className="w-4 h-4" />
+                                                    <span>Paid</span>
+                                                </div>
+                                            </div>
+                                            <div className="mt-4 border-t pt-4">
+                                                <div className="grid gap-2 text-sm">
+                                                    <p>
+                                                        <strong>Status:</strong>{" "}
+                                                        {booking?.bookingStatus || "ACTIVE"}
+                                                    </p>
+
+                                                    {booking?.bookingStatus === "CANCELLED" && (
+                                                        <>
+                                                            <p>
+                                                                <strong>Cancellation Reason:</strong>{" "}
+                                                                {booking?.cancellationReason}
+                                                            </p>
+
+                                                            <p>
+                                                                <strong>Refund Amount:</strong> ₹
+                                                                {booking?.refundAmount}
+                                                            </p>
+
+                                                            <p>
+                                                                <strong>Refund Status:</strong>{" "}
+                                                                {booking?.refundStatus}
+                                                            </p>
+
+                                                            <p className="text-green-600">
+                                                                Expected refund processing: 3-7 business days
+                                                            </p>
+                                                        </>
+                                                    )}
+
+                                                    {booking?.bookingStatus !== "CANCELLED" && (
+                                                        <>
+                                                            <select
+                                                                className="border rounded p-2"
+                                                                value={selectedReason[booking.bookingId] || ""}
+                                                                onChange={(e) =>
+                                                                    setSelectedReason({
+                                                                        ...selectedReason,
+
+                                                                        [booking.bookingId]: e.target.value,
+                                                                    })
+                                                                }
+                                                            >
+                                                                <option value="">Select Reason</option>
+
+                                                                <option value="Plan Changed">Plan Changed</option>
+
+                                                                <option value="Found Better Price">
+                                                                    Found Better Price
+                                                                </option>
+
+                                                                <option value="Booking Mistake">
+                                                                    Booking Mistake
+                                                                </option>
+
+                                                                <option value="Medical Emergency">
+                                                                    Medical Emergency
+                                                                </option>
+
+                                                                <option value="Travel Cancelled">
+                                                                    Travel Cancelled
+                                                                </option>
+
+                                                                <option value="Other">Other</option>
+                                                            </select>
+
+                                                            <button
+                                                                onClick={() =>
+                                                                    handleCancelBooking(booking.bookingId)
+                                                                }
+                                                                className="
+                            mt-2
+                            bg-red-600
+                            text-white
+                            px-4
+                            py-2
+                            rounded
+                            hover:bg-red-700
+                        "
+                                                            >
+                                                                Cancel Booking
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                                            <div className="flex items-center space-x-1">
-                                                <Calendar className="w-4 h-4" />
-                                                <span>{formatDate(booking?.date)}</span>
-                                            </div>
-                                            <div className="flex items-center space-x-1">
-                                                <MapPin className="w-4 h-4" />
-                                                <span>{booking?.type}</span>
-                                            </div>
-                                            <div className="flex items-center space-x-1">
-                                                <CreditCard className="w-4 h-4" />
-                                                <span>Paid</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
                             </div>
                         </div>
                     </div>

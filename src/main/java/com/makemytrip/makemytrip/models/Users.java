@@ -4,6 +4,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.time.LocalDateTime;
+
 @Document(collection = "users")
 public class Users {
     @Id
@@ -48,9 +50,17 @@ public class Users {
     public static class Booking{
         private String type;
         private String bookingId;
-        private String date;
+
+        private LocalDateTime bookingTime;
+
         private int quantity;
         private double totalPrice;
+
+        private String bookingStatus;
+        private String cancellationReason;
+        private double refundAmount;
+        private String refundStatus;
+        private LocalDateTime cancellationTime;
 
         // Getters and Setters
         public String getType() {
@@ -69,12 +79,12 @@ public class Users {
             this.bookingId = bookingId;
         }
 
-        public String getDate() {
-            return date;
+        public LocalDateTime getBookingTime() {
+            return bookingTime;
         }
 
-        public void setDate(String date) {
-            this.date = date;
+        public void setBookingTime(LocalDateTime bookingTime) {
+            this.bookingTime = bookingTime;
         }
 
         public int getQuantity() {
@@ -91,6 +101,46 @@ public class Users {
 
         public void setTotalPrice(double totalPrice) {
             this.totalPrice = totalPrice;
+        }
+
+        public String getBookingStatus() {
+            return bookingStatus;
+        }
+
+        public void setBookingStatus(String bookingStatus) {
+            this.bookingStatus = bookingStatus;
+        }
+
+        public String getCancellationReason() {
+            return cancellationReason;
+        }
+
+        public void setCancellationReason(String cancellationReason) {
+            this.cancellationReason = cancellationReason;
+        }
+
+        public double getRefundAmount() {
+            return refundAmount;
+        }
+
+        public void setRefundAmount(double refundAmount) {
+            this.refundAmount = refundAmount;
+        }
+
+        public String getRefundStatus() {
+            return refundStatus;
+        }
+
+        public void setRefundStatus(String refundStatus) {
+            this.refundStatus = refundStatus;
+        }
+
+        public LocalDateTime getCancellationTime() {
+            return cancellationTime;
+        }
+
+        public void setCancellationTime(LocalDateTime cancellationTime) {
+            this.cancellationTime = cancellationTime;
         }
     }
 }
