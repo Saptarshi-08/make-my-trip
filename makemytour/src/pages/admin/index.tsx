@@ -29,7 +29,9 @@ import {
     edithotel,
     getuserbyemail,
     getAllUsers,
-    updateRefundStatus
+    updateRefundStatus,
+    getFlaggedReviews,
+    removeReview,
 } from "@/api";
 import HotelList from "@/components/Hotel/Hotel";
 const mockFlights = [
@@ -183,7 +185,7 @@ function AddEditHotel({ hotel }: { hotel: Hotel | null }) {
     }, [hotel]);
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
     ) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
@@ -198,7 +200,7 @@ function AddEditHotel({ hotel }: { hotel: Hotel | null }) {
                 formData.location,
                 formData.pricePerNight,
                 formData.availableRooms,
-                formData.amenities
+                formData.amenities,
             );
             return;
         }
@@ -207,7 +209,7 @@ function AddEditHotel({ hotel }: { hotel: Hotel | null }) {
             formData.location,
             formData.pricePerNight,
             formData.availableRooms,
-            formData.amenities
+            formData.amenities,
         );
         if (!hotel) {
             setFormData({
@@ -338,7 +340,7 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
                 formData.departureTime,
                 formData.arrivalTime,
                 formData.price,
-                formData.availableSeats
+                formData.availableSeats,
             );
             return;
         }
@@ -349,7 +351,7 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
             formData.departureTime,
             formData.arrivalTime,
             formData.price,
-            formData.availableSeats
+            formData.availableSeats,
         );
         if (!flight) {
             setFormData({
@@ -462,129 +464,69 @@ interface RefundUser {
 }
 
 function RefundManagement() {
-
     const [users, setUsers] = useState<RefundUser[]>([]);
 
     useEffect(() => {
-
         loadRefunds();
-
     }, []);
 
     const loadRefunds = async () => {
-
-        const data =
-            await getAllUsers();
+        const data = await getAllUsers();
 
         setUsers(data);
     };
 
-    const processRefund = async (
-        userId: String,
-        bookingId: String
-    ) => {
-
+    const processRefund = async (userId: String, bookingId: String) => {
         console.log({
             userId,
-            bookingId
-        });
-        await updateRefundStatus(
-            userId,
             bookingId,
-            "PROCESSED"
-        );
+        });
+        await updateRefundStatus(userId, bookingId, "PROCESSED");
 
         loadRefunds();
     };
 
-    const completeRefund = async (
-        userId: String,
-        bookingId: String
-    ) => {
-
-        await updateRefundStatus(
-            userId,
-            bookingId,
-            "COMPLETED"
-        );
+    const completeRefund = async (userId: String, bookingId: String) => {
+        await updateRefundStatus(userId, bookingId, "COMPLETED");
 
         loadRefunds();
     };
 
     return (
-
         <div className="space-y-4">
+            {users.map((user) =>
+                user.bookings?.map((booking) => {
+                    if (booking.bookingStatus !== "CANCELLED") return null;
 
-            {
-                users.map((user) =>
-
-                    user.bookings?.map(
-                        (booking) => {
-
-                            if (
-                                booking.bookingStatus
-                                !== "CANCELLED"
-                            ) return null;
-
-                            return (
-
-                                <div
-                                    key={
-                                        booking.bookingId
-                                    }
-
-                                    className="
+                    return (
+                        <div
+                            key={booking.bookingId}
+                            className="
                                         border
                                         p-4
                                         rounded
                                     "
-                                >
+                        >
+                            <p>
+                                <b>User:</b> {user.firstName}
+                            </p>
 
-                                    <p>
-                                        <b>User:</b>
-                                        {" "}
-                                        {user.firstName}
-                                    </p>
+                            <p>
+                                <b>Booking:</b> {booking.bookingId}
+                            </p>
 
-                                    <p>
-                                        <b>Booking:</b>
-                                        {" "}
-                                        {
-                                            booking.bookingId
-                                        }
-                                    </p>
+                            <p>
+                                <b>Refund:</b>₹{booking.refundAmount}
+                            </p>
 
-                                    <p>
-                                        <b>Refund:</b>
-                                        ₹
-                                        {
-                                            booking.refundAmount
-                                        }
-                                    </p>
+                            <p>
+                                <b>Status:</b> {booking.refundStatus}
+                            </p>
 
-                                    <p>
-                                        <b>Status:</b>
-                                        {" "}
-                                        {
-                                            booking.refundStatus
-                                        }
-                                    </p>
-
-                                    {
-                                        booking.refundStatus
-                                        ===
-                                        "PENDING"
-                                        && (
-
-                                            <button
-                                                onClick={() =>
-                                                    processRefund(
-                                                        user.id,
-                                                        booking.bookingId
-                                                    )
-                                                }
-
-                                                className="
+                            {booking.refundStatus === "PENDING" && (
+                                <button
+                                    onClick={() => processRefund(user.id, booking.bookingId)}
+                                    className="
                                                     bg-blue-500
                                                     text-white
                                                     px-3
@@ -592,27 +534,15 @@ function RefundManagement() {
                                                     rounded
                                                     mt-2
                                                 "
-                                            >
-                                                Process
-                                            </button>
-                                        )
-                                    }
+                                >
+                                    Process
+                                </button>
+                            )}
 
-                                    {
-                                        booking.refundStatus
-                                        ===
-                                        "PROCESSED"
-                                        && (
-
-                                            <button
-                                                onClick={() =>
-                                                    completeRefund(
-                                                        user.id,
-                                                        booking.bookingId
-                                                    )
-                                                }
-
-                                                className="
+                            {booking.refundStatus === "PROCESSED" && (
+                                <button
+                                    onClick={() => completeRefund(user.id, booking.bookingId)}
+                                    className="
                                                     bg-green-500
                                                     text-white
                                                     px-3
@@ -620,19 +550,106 @@ function RefundManagement() {
                                                     rounded
                                                     mt-2
                                                 "
-                                            >
-                                                Complete
-                                            </button>
-                                        )
-                                    }
+                                >
+                                    Complete
+                                </button>
+                            )}
+                        </div>
+                    );
+                }),
+            )}
+        </div>
+    );
+}
 
-                                </div>
-                            );
-                        }
-                    )
-                )
-            }
+function ReviewModeration() {
+    const [reviews, setReviews] = useState<any[]>([]);
 
+    const loadReviews = async () => {
+        try {
+            const data = await getFlaggedReviews();
+
+            setReviews(data);
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    useEffect(() => {
+        loadReviews();
+    }, []);
+
+    const remove = async (reviewId: string) => {
+        await removeReview(reviewId);
+
+        setReviews((prev) =>
+            prev.map((review) =>
+                review.id === reviewId || review._id === reviewId
+                    ? {
+                        ...review,
+                        removed: true,
+                    }
+                    : review,
+            ),
+        );
+    };
+
+    return (
+        <div className="space-y-4">
+            {reviews.length === 0 && <p>No flagged reviews.</p>}
+
+            {reviews.map((review) => (
+                <div
+                    key={review.id}
+                    className="
+                                border
+                                p-4
+                                rounded
+                            "
+                >
+                    <p>
+                        <b>User:</b> {review.userName}
+                    </p>
+
+                    <p>
+                        <b>Rating:</b> {review.rating}
+                    </p>
+
+                    <p>
+                        <b>Review:</b> {review.reviewText}
+                    </p>
+
+                    <p>
+                        <b>Reason:</b> {review.flagReason}
+                    </p>
+
+                    {review.removed ? (
+                        <p
+                            className="
+                mt-3
+                font-semibold
+                text-green-600
+            "
+                        >
+                            Review Removed
+                        </p>
+                    ) : (
+                        <button
+                            onClick={() => remove(review.id || review._id)}
+                            className="
+                bg-red-500
+                text-white
+                px-3
+                py-1
+                rounded
+                mt-3
+            "
+                        >
+                            Remove Review
+                        </button>
+                    )}
+                </div>
+            ))}
         </div>
     );
 }
@@ -646,11 +663,12 @@ export default function AdminDashboard() {
         <div className="container mx-auto p-4 bg-white max-w-full">
             <h1 className="text-3xl font-bold mb-6 ">Admin Dashboard</h1>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-4  text-black">
+                <TabsList className="grid w-full grid-cols-5  text-black">
                     <TabsTrigger value="flights">Flights</TabsTrigger>
                     <TabsTrigger value="hotels">Hotels</TabsTrigger>
                     <TabsTrigger value="users">Users</TabsTrigger>
                     <TabsTrigger value="refunds">Refunds</TabsTrigger>
+                    <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 </TabsList>
                 <TabsContent value="flights">
                     <Card>
@@ -697,27 +715,30 @@ export default function AdminDashboard() {
                 </TabsContent>
                 <TabsContent value="refunds">
                     <Card>
-
                         <CardHeader>
+                            <CardTitle>Refund Management</CardTitle>
 
-                            <CardTitle>
-                                Refund Management
-                            </CardTitle>
-
-                            <CardDescription>
-
-                                Manage refund requests
-
-                            </CardDescription>
-
+                            <CardDescription>Manage refund requests</CardDescription>
                         </CardHeader>
 
                         <CardContent>
-
                             <RefundManagement />
-
                         </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="reviews">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Review Moderation</CardTitle>
 
+                            <CardDescription>
+                                Flagged reviews requiring admin action
+                            </CardDescription>
+                        </CardHeader>
+
+                        <CardContent>
+                            <ReviewModeration />
+                        </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>

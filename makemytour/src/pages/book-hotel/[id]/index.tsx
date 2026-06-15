@@ -15,14 +15,19 @@ import {
     Home,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { gethotel, handlehotelbooking } from "@/api";
+import { gethotel, handlehotelbooking, getReviews } from "@/api";
+import ReviewForm from "@/components/reviews/ReviewForm";
+
+import ReviewList from "@/components/reviews/ReviewList";
 interface Hotel {
     id: string; // Unique identifier for the hotel
     hotelName: string; // Name of the hotel
     location: string; // Location of the hotel
     pricePerNight: number; // Price per night
     availableRooms: number; // Number of available rooms
-    amenities: string; // Amenities provided (comma-separated string or change to string[])
+    amenities: string; // Amenities provided 
+    averageRating: number;
+    reviewCount: number;
 }
 import {
     Dialog,
@@ -46,26 +51,81 @@ const BookHotelPage = () => {
     const [loading, setLoading] = useState(true);
     const user = useSelector((state: any) => state.user.user);
     const [open, setopem] = useState(false);
+    const [reviews, setReviews] = useState<any[]>([]);
+    const [sort, setSort] =
+        useState("newest");
+    const refreshReviews = async (
+        hotelId: string
+    ) => {
+
+        try {
+
+            const data =
+                await getReviews(
+                    "HOTEL",
+                    hotelId,
+                    sort
+                );
+
+            setReviews(data);
+
+        } catch (error) {
+
+            console.log(error);
+        }
+    };
     const dispatch = useDispatch();
     useEffect(() => {
+
         const fetchhotels = async () => {
+
             try {
+
                 const data = await gethotel();
-                const filteredData = data.filter((hotel: any) => hotel.id === id);
+
+                const filteredData =
+                    data.filter(
+                        (hotel: any) =>
+                            hotel.id === id
+                    );
+
                 sethotels(filteredData);
+
+                if (filteredData.length > 0) {
+
+                    await refreshReviews(
+                        filteredData[0].id
+                    );
+                }
+
             } catch (error) {
-                console.error("Error fetching flights:", error);
+
+                console.error(
+                    "Error fetching hotel:",
+                    error
+                );
+
             } finally {
+
                 setLoading(false);
             }
         };
-        fetchhotels();
-    }, []);
+
+        if (id) {
+            fetchhotels();
+        }
+
+    }, [id, sort]);
 
     if (loading) {
         return <Loader />;
     }
     const hotel = hotels[0];
+    console.log(hotel);
+
+    if (!hotel) {
+        return <Loader />;
+    }
     const hotelData = {
         name: "Magnum Resorts- Near Candolim Beach",
         rating: 3,
@@ -435,14 +495,22 @@ const BookHotelPage = () => {
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center space-x-4">
                                     <div className="bg-blue-500 text-white text-2xl font-bold w-16 h-16 rounded-lg flex items-center justify-center">
-                                        {hotelData.reviews.rating}
+                                        {
+                                            hotel.averageRating
+                                                ? hotel.averageRating.toFixed(1)
+                                                : "0.0"
+                                        }
                                     </div>
                                     <div>
                                         <div className="font-semibold text-lg">
                                             {hotelData.reviews.text}
                                         </div>
                                         <div className="text-gray-500">
-                                            ({hotelData.reviews.count} ratings)
+                                            (
+                                            {hotel.reviewCount}
+                                            {" "}
+                                            ratings
+                                            )
                                         </div>
                                     </div>
                                 </div>
@@ -451,7 +519,58 @@ const BookHotelPage = () => {
                                 </a>
                             </div>
                         </div>
+                        <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
 
+                            <ReviewForm
+                                targetType="HOTEL"
+                                targetId={hotel.id}
+                                user={user}
+                                refreshReviews={() =>
+                                    refreshReviews(
+                                        hotel.id
+                                    )
+                                }
+                            />
+
+                            <div className="flex justify-between items-center mb-4">
+
+                                <h3 className="font-bold text-xl">
+                                    Reviews
+                                </h3>
+
+                                <select
+                                    className="border rounded p-2"
+                                    value={sort}
+                                    onChange={(e) =>
+                                        setSort(e.target.value)
+                                    }
+                                >
+                                    <option value="newest">
+                                        Newest
+                                    </option>
+
+                                    <option value="highest">
+                                        Highest Rated
+                                    </option>
+
+                                    <option value="helpful">
+                                        Most Helpful
+                                    </option>
+                                </select>
+
+                            </div>
+
+                            <ReviewList
+                                reviews={reviews}
+                                user={user}
+                                refreshReviews={() =>
+                                    refreshReviews(
+                                        hotel.id
+                                    )
+                                }
+                            />
+
+                        </div>
                         {/* Location Card */}
                         <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
                             <div className="flex items-start justify-between">

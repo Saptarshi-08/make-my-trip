@@ -11,6 +11,8 @@ public class Hotel {
     private double pricePerNight;
     private int availableRooms;
     private String amenities;
+    private double averageRating = 0.0;
+    private int reviewCount = 0;
     // Getters and Setters
     public String getId() {
         return _id;
@@ -58,5 +60,21 @@ public class Hotel {
 
     public void setPricePerNight(double pricePerNight) {
         this.pricePerNight = pricePerNight;
+    }
+
+    public double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public int getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(int reviewCount) {
+        this.reviewCount = reviewCount;
     }
 }

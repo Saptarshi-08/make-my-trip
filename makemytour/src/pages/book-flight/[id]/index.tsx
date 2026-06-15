@@ -15,7 +15,17 @@ import {
     ArrowRight,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getflight, handleflightbooking } from "@/api";
+import {
+    getflight,
+    handleflightbooking,
+    getReviews
+} from "@/api";
+
+import ReviewForm
+    from "@/components/reviews/ReviewForm";
+
+import ReviewList
+    from "@/components/reviews/ReviewList";
 import { useDispatch, useSelector } from "react-redux";
 interface Flight {
     id: string; // Unique identifier for the flight
@@ -26,6 +36,8 @@ interface Flight {
     arrivalTime: string; // Arrival time (ISO 8601 string recommended)
     price: number; // Price of the flight
     availableSeats: number; // Number of available seats
+    averageRating: number;
+    reviewCount: number;
 }
 import {
     Dialog,
@@ -48,6 +60,31 @@ const BookFlightPage = () => {
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
     const [open, setopem] = useState(false);
+    const [reviews, setReviews] =
+        useState<any[]>([]);
+
+    const [sort, setSort] =
+        useState("newest");
+    const refreshReviews = async (
+        flightId: string
+    ) => {
+
+        try {
+
+            const data =
+                await getReviews(
+                    "FLIGHT",
+                    flightId,
+                    sort
+                );
+
+            setReviews(data);
+
+        } catch (error) {
+
+            console.log(error);
+        }
+    };
     const user = useSelector((state: any) => state.user.user);
     const dispatch = useDispatch();
     useEffect(() => {
@@ -56,6 +93,12 @@ const BookFlightPage = () => {
                 const data = await getflight();
                 const filteredData = data.filter((flight: any) => flight.id === id);
                 setFlights(filteredData);
+                if (filteredData.length > 0) {
+
+                    await refreshReviews(
+                        filteredData[0].id
+                    );
+                }
                 console.log(filteredData);
             } catch (error) {
                 console.error("Error fetching flights:", error);
@@ -64,7 +107,7 @@ const BookFlightPage = () => {
             }
         };
         fetchFlights();
-    }, [id, user]);
+    }, [id, sort]);
 
     if (loading) {
         return <Loader />;
@@ -425,6 +468,58 @@ const BookFlightPage = () => {
                                 </div>
                             </div>
                         </div>
+                        <div className="bg-white rounded-xl shadow-lg p-6">
+
+                            <ReviewForm
+                                targetType="FLIGHT"
+                                targetId={flight.id}
+                                user={user}
+                                refreshReviews={() =>
+                                    refreshReviews(
+                                        flight.id
+                                    )
+                                }
+                            />
+
+                            <div className="flex justify-between items-center mb-4">
+
+                                <h3 className="font-bold text-xl">
+                                    Reviews
+                                </h3>
+
+                                <select
+                                    className="border rounded p-2"
+                                    value={sort}
+                                    onChange={(e) =>
+                                        setSort(e.target.value)
+                                    }
+                                >
+                                    <option value="newest">
+                                        Newest
+                                    </option>
+
+                                    <option value="highest">
+                                        Highest Rated
+                                    </option>
+
+                                    <option value="helpful">
+                                        Most Helpful
+                                    </option>
+                                </select>
+
+                            </div>
+
+                            <ReviewList
+                                reviews={reviews}
+                                user={user}
+                                refreshReviews={() =>
+                                    refreshReviews(
+                                        flight.id
+                                    )
+                                }
+                            />
+
+                        </div>
 
                         {/* Hotel Offers */}
                         <div className="bg-white rounded-xl shadow-sm p-6">
@@ -485,6 +580,51 @@ const BookFlightPage = () => {
 
                     {/* Fare Summary */}
                     <div className="lg:col-span-1">
+
+                        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+
+                            <h2 className="text-lg font-bold mb-4">
+                                Traveler Rating
+                            </h2>
+
+                            <div className="flex items-center justify-between">
+
+                                <div
+                                    className="
+                    bg-blue-500
+                    text-white
+                    text-2xl
+                    font-bold
+                    w-16
+                    h-16
+                    rounded-lg
+                    flex
+                    items-center
+                    justify-center
+                "
+                                >
+                                    {
+                                        flight.averageRating
+                                            ? flight.averageRating.toFixed(1)
+                                            : "0.0"
+                                    }
+                                </div>
+
+                                <div>
+
+                                    <p className="text-gray-600">
+                                        Total Reviews
+                                    </p>
+
+                                    <p className="font-bold text-lg">
+                                        {flight.reviewCount}
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+                        </div>
                         <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
                             <h2 className="text-lg font-bold mb-6 flex items-center">
                                 <CreditCard className="w-5 h-5 mr-2 text-gray-600" />

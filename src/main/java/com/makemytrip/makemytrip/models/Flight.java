@@ -13,6 +13,8 @@ public class Flight {
     private String arrivalTime;
     private double price;
     private int availableSeats;
+    private double averageRating = 0.0;
+    private int reviewCount = 0;
 
     // Getters and Setters
 
@@ -78,5 +80,21 @@ public class Flight {
 
     public void setAvailableSeats(int availableSeats) {
         this.availableSeats = availableSeats;
+    }
+
+    public double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public int getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(int reviewCount) {
+        this.reviewCount = reviewCount;
     }
 }

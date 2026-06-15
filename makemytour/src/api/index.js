@@ -71,7 +71,8 @@ export const getflight = async () => {
     const data = res.data;
     return data;
   } catch (error) {
-    console.log(data);
+    console.log(error);
+    throw error;
   }
 };
 
@@ -134,7 +135,8 @@ export const gethotel = async () => {
     const data = res.data;
     return data;
   } catch (error) {
-    console.log(data);
+    console.log(error);
+    throw error;
   }
 };
 
@@ -240,6 +242,83 @@ export const updateRefundStatus = async (userId, bookingId, status) => {
 export const getAllUsers = async () => {
   try {
     const res = await axios.get(`${BACKEND_URL}/admin/users`);
+
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createReview = async (reviewData) => {
+  try {
+    const res = await axios.post(`${BACKEND_URL}/review`, reviewData);
+
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getReviews = async (targetType, targetId, sort = "newest") => {
+  try {
+    const res = await axios.get(
+      `${BACKEND_URL}/review/${targetType}/${targetId}?sort=${sort}`,
+    );
+
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const addReply = async (reviewId, replyData) => {
+  try {
+    const res = await axios.post(
+      `${BACKEND_URL}/review/${reviewId}/reply`,
+      replyData,
+    );
+
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const markHelpful = async (reviewId) => {
+  try {
+    const res = await axios.post(`${BACKEND_URL}/review/${reviewId}/helpful`);
+
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const flagReview = async (reviewId, reason) => {
+  try {
+    const res = await axios.post(`${BACKEND_URL}/review/${reviewId}/flag`, {
+      reason,
+    });
+
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getFlaggedReviews = async () => {
+  try {
+    const res = await axios.get(`${BACKEND_URL}/moderation/flagged`);
+
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const removeReview = async (reviewId) => {
+  try {
+    const res = await axios.put(`${BACKEND_URL}/moderation/remove/${reviewId}`);
 
     return res.data;
   } catch (error) {
