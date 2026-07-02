@@ -15,6 +15,12 @@ public class Flight {
     private int availableSeats;
     private double averageRating = 0.0;
     private int reviewCount = 0;
+    private String flightStatus = "ON_TIME";
+    private String delayReason = "";
+    private String revisedDepartureTime;
+    private String revisedArrivalTime;
+    private String estimatedArrivalTime;
+    private String lastUpdated;
 
     // Getters and Setters
 
@@ -96,5 +102,53 @@ public class Flight {
 
     public void setReviewCount(int reviewCount) {
         this.reviewCount = reviewCount;
+    }
+
+    public String getFlightStatus() {
+        return flightStatus;
+    }
+
+    public void setFlightStatus(String flightStatus) {
+        this.flightStatus = flightStatus;
+    }
+
+    public String getDelayReason() {
+        return delayReason;
+    }
+
+    public void setDelayReason(String delayReason) {
+        this.delayReason = delayReason;
+    }
+
+    public String getRevisedDepartureTime() {
+        return revisedDepartureTime;
+    }
+
+    public void setRevisedDepartureTime(String revisedDepartureTime) {
+        this.revisedDepartureTime = revisedDepartureTime;
+    }
+
+    public String getRevisedArrivalTime() {
+        return revisedArrivalTime;
+    }
+
+    public void setRevisedArrivalTime(String revisedArrivalTime) {
+        this.revisedArrivalTime = revisedArrivalTime;
+    }
+
+    public String getEstimatedArrivalTime() {
+        return estimatedArrivalTime;
+    }
+
+    public void setEstimatedArrivalTime(String estimatedArrivalTime) {
+        this.estimatedArrivalTime = estimatedArrivalTime;
+    }
+
+    public String getLastUpdated() {
+        return lastUpdated;
+    }
+
+    public void setLastUpdated(String lastUpdated) {
+        this.lastUpdated = lastUpdated;
     }
 }

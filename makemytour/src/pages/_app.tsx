@@ -4,7 +4,7 @@ import Head from "next/head";
 import store, { setUser } from "@/store";
 import { Provider } from "react-redux";
 import Navbar from "@/components/Navbar";
-
+import { Toaster } from "react-hot-toast";
 import { useEffect } from "react";
 import Footer from "@/components/Footer";
 
@@ -29,6 +29,14 @@ export default function App(props: AppProps) {
       <Head>
         <title>MakeMyTour</title>
       </Head>
+
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 5000,
+        }}
+      />
+
       <Myapp {...props} />
     </Provider>
   );

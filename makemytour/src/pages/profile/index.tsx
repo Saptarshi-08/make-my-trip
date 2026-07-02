@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     User,
     Phone,
@@ -15,8 +15,15 @@ import {
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/router";
+import toast from "react-hot-toast";
 import { clearUser, setUser } from "@/store";
-import { editprofile, cancelBooking, getuserbyemail } from "@/api";
+import {
+    editprofile,
+    cancelBooking,
+    getuserbyemail,
+    getFlightStatus,
+} from "@/api";
+
 const index = () => {
     const dispatch = useDispatch();
     const user = useSelector((state: any) => state.user.user);
@@ -34,9 +41,118 @@ const index = () => {
                 console.error(error);
             }
         };
-
-        refreshUser();
     }, [user?.email]);
+
+    useEffect(() => {
+        const fetchStatuses = async () => {
+            if (!user?.bookings) return;
+
+            const statuses: Record<string, any> = {};
+
+            for (const booking of user.bookings) {
+                if (
+                    booking?.type === "Flight" &&
+                    booking?.flightId &&
+                    booking?.bookingStatus === "ACTIVE"
+                ) {
+                    try {
+                        const status = await getFlightStatus(booking.flightId);
+
+                        statuses[booking.flightId] = status;
+                        const oldStatus =
+                            previousStatusesRef.current[
+                            booking.flightId
+                            ];
+
+                        console.log("Old:", oldStatus);
+                        console.log("New:", status.flightStatus);
+                        if (
+                            oldStatus !== undefined &&
+                            oldStatus !== status.flightStatus
+                        ) {
+                            const message =
+                                `✈ ${booking.flightName}\n` +
+                                `Status: ${status.flightStatus.replaceAll("_", " ")}\n` +
+                                (status.delayReason
+                                    ? `Reason: ${status.delayReason}\n`
+                                    : "") +
+                                (status.revisedDepartureTime
+                                    ? `Departure: ${new Date(
+                                        status.revisedDepartureTime
+                                    ).toLocaleTimeString()}\n`
+                                    : "") +
+                                `ETA: ${new Date(
+                                    status.estimatedArrivalTime
+                                ).toLocaleTimeString()}`;
+
+                            switch (status.flightStatus) {
+                                case "ON_TIME":
+                                    toast.success(message);
+                                    break;
+
+                                case "BOARDING":
+                                    toast(message, {
+                                        icon: "🛫",
+                                    });
+                                    break;
+
+                                case "DELAYED_BY_1_HOUR":
+                                    toast.error(message);
+                                    break;
+
+                                default:
+                                    toast(message);
+                            }
+                        }
+                    } catch (error) {
+                        console.log(error);
+                    }
+                }
+            }
+
+            setFlightStatuses(statuses);
+            const updatedPrevious:
+                Record<string, string> = {};
+
+            Object.keys(statuses)
+                .forEach((flightId) => {
+
+                    updatedPrevious[
+                        flightId
+                    ] =
+                        statuses[
+                            flightId
+                        ].flightStatus;
+
+                });
+
+            previousStatusesRef.current = updatedPrevious;
+
+            setPreviousStatuses(
+                updatedPrevious
+            );
+            Object.values(statuses)
+                .forEach((flight: any) => {
+
+                    if (
+                        flight.flightStatus ===
+                        "DELAYED_BY_1_HOUR"
+                    ) {
+
+                        console.log(
+                            `${flight.flightName}
+            delayed by 1 hour`
+                        );
+                    }
+                });
+        };
+
+        fetchStatuses();
+
+        const interval = setInterval(fetchStatuses, 15000);
+
+        return () => clearInterval(interval);
+    }, [user]);
 
     const logout = () => {
         dispatch(clearUser());
@@ -46,6 +162,9 @@ const index = () => {
     const [selectedReason, setSelectedReason] = useState<Record<string, string>>(
         {},
     );
+    const [flightStatuses, setFlightStatuses] = useState<Record<string, any>>({});
+    const [previousStatuses, setPreviousStatuses] = useState<Record<string, string>>({});
+    const previousStatusesRef = useRef<Record<string, string>>({});
     const [userData, setUserData] = useState({
         firstName: user?.firstName ? user?.firstName : "",
         lastName: user?.lastName ? user?.lastName : "",
@@ -266,7 +385,9 @@ const index = () => {
                                                     <p className="font-semibold">
                                                         ₹ {booking?.totalPrice.toLocaleString("en-IN")}
                                                     </p>
-                                                    <p className="text-sm text-gray-500">{booking?.type}</p>
+                                                    <p className="text-sm text-gray-500">
+                                                        {booking?.type}
+                                                    </p>
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap gap-4 text-sm text-gray-600">
@@ -293,6 +414,166 @@ const index = () => {
                                                         <strong>Status:</strong>{" "}
                                                         {booking?.bookingStatus || "ACTIVE"}
                                                     </p>
+                                                    {
+                                                        booking?.type === "Flight" &&
+                                                        booking?.flightId &&
+                                                        booking?.bookingStatus === "ACTIVE" &&
+                                                        flightStatuses[booking.flightId] && (
+
+                                                            <div className="mt-4 rounded-xl border bg-white p-4 shadow-sm">
+
+                                                                <div className="flex items-center justify-between mb-3">
+
+                                                                    <h4 className="font-semibold text-lg">
+                                                                        ✈ Live Flight Tracking
+                                                                    </h4>
+
+                                                                    <span
+                                                                        className={`px-3 py-1 rounded-full text-sm font-semibold ${flightStatuses[booking.flightId].flightStatus === "ON_TIME"
+                                                                            ? "bg-green-100 text-green-700"
+                                                                            : flightStatuses[booking.flightId].flightStatus === "BOARDING"
+                                                                                ? "bg-yellow-100 text-yellow-700"
+                                                                                : "bg-red-100 text-red-700"
+                                                                            }`}
+                                                                    >
+                                                                        {
+                                                                            flightStatuses[booking.flightId].flightStatus
+                                                                                .replaceAll("_", " ")
+                                                                        }
+                                                                    </span>
+
+                                                                </div>
+
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                                                                    <div>
+                                                                        <p className="text-gray-500 text-sm">
+                                                                            Flight
+                                                                        </p>
+
+                                                                        <p className="font-medium">
+                                                                            {booking.flightName}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div>
+                                                                        <p className="text-gray-500 text-sm">
+                                                                            Route
+                                                                        </p>
+
+                                                                        <p className="font-medium">
+                                                                            {booking.fromLocation}
+                                                                            {" → "}
+                                                                            {booking.toLocation}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    {
+                                                                        flightStatuses[booking.flightId]
+                                                                            .delayReason && (
+
+                                                                            <div className="md:col-span-2">
+
+                                                                                <p className="text-gray-500 text-sm">
+                                                                                    Delay Reason
+                                                                                </p>
+
+                                                                                <p className="font-medium text-red-600">
+                                                                                    {
+                                                                                        flightStatuses[
+                                                                                            booking.flightId
+                                                                                        ].delayReason
+                                                                                    }
+                                                                                </p>
+
+                                                                            </div>
+                                                                        )
+                                                                    }
+                                                                    {
+                                                                        flightStatuses[
+                                                                            booking.flightId
+                                                                        ].revisedDepartureTime && (
+
+                                                                            <>
+                                                                                <div>
+
+                                                                                    <p className="text-gray-500 text-sm">
+                                                                                        Revised Departure
+                                                                                    </p>
+
+                                                                                    <p className="font-medium text-orange-600">
+                                                                                        {
+                                                                                            new Date(
+                                                                                                flightStatuses[
+                                                                                                    booking.flightId
+                                                                                                ].revisedDepartureTime
+                                                                                            ).toLocaleString()
+                                                                                        }
+                                                                                    </p>
+
+                                                                                </div>
+
+                                                                                <div>
+
+                                                                                    <p className="text-gray-500 text-sm">
+                                                                                        Revised Arrival
+                                                                                    </p>
+
+                                                                                    <p className="font-medium text-orange-600">
+                                                                                        {
+                                                                                            new Date(
+                                                                                                flightStatuses[
+                                                                                                    booking.flightId
+                                                                                                ].revisedArrivalTime
+                                                                                            ).toLocaleString()
+                                                                                        }
+                                                                                    </p>
+
+                                                                                </div>
+
+                                                                            </>
+                                                                        )
+                                                                    }
+                                                                    <div>
+                                                                        <p className="text-gray-500 text-sm">
+                                                                            Estimated Arrival
+                                                                        </p>
+
+                                                                        <p className="font-medium">
+                                                                            {
+                                                                                new Date(
+                                                                                    flightStatuses[
+                                                                                        booking.flightId
+                                                                                    ].estimatedArrivalTime
+                                                                                ).toLocaleString()
+                                                                            }
+                                                                        </p>
+
+                                                                    </div>
+
+                                                                    <div>
+
+                                                                        <p className="text-gray-500 text-sm">
+                                                                            Last Updated
+                                                                        </p>
+
+                                                                        <p className="font-medium">
+                                                                            {
+                                                                                new Date(
+                                                                                    flightStatuses[
+                                                                                        booking.flightId
+                                                                                    ].lastUpdated
+                                                                                ).toLocaleString()
+                                                                            }
+                                                                        </p>
+
+                                                                    </div>
+
+                                                                </div>
+
+                                                            </div>
+                                                        )
+                                                    }
 
                                                     {booking?.bookingStatus === "CANCELLED" && (
                                                         <>
@@ -332,7 +613,9 @@ const index = () => {
                                                             >
                                                                 <option value="">Select Reason</option>
 
-                                                                <option value="Plan Changed">Plan Changed</option>
+                                                                <option value="Plan Changed">
+                                                                    Plan Changed
+                                                                </option>
 
                                                                 <option value="Found Better Price">
                                                                     Found Better Price

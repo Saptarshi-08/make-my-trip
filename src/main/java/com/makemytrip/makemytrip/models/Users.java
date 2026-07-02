@@ -62,6 +62,11 @@ public class Users {
         private String refundStatus;
         private LocalDateTime cancellationTime;
 
+        private String flightId;
+        private String flightName;
+        private String fromLocation;
+        private String toLocation;
+
         // Getters and Setters
         public String getType() {
             return type;
@@ -141,6 +146,38 @@ public class Users {
 
         public void setCancellationTime(LocalDateTime cancellationTime) {
             this.cancellationTime = cancellationTime;
+        }
+
+        public String getFlightId() {
+            return flightId;
+        }
+
+        public void setFlightId(String flightId) {
+            this.flightId = flightId;
+        }
+
+        public String getFlightName() {
+            return flightName;
+        }
+
+        public void setFlightName(String flightName) {
+            this.flightName = flightName;
+        }
+
+        public String getFromLocation() {
+            return fromLocation;
+        }
+
+        public void setFromLocation(String fromLocation) {
+            this.fromLocation = fromLocation;
+        }
+
+        public String getToLocation() {
+            return toLocation;
+        }
+
+        public void setToLocation(String toLocation) {
+            this.toLocation = toLocation;
         }
     }
 }

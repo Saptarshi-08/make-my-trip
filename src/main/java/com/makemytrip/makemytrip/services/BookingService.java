@@ -36,8 +36,14 @@ public class BookingService {
                 flightRepository.save(flight);
 
                 Booking booking=new Booking();
+
                 booking.setType("Flight");
                 booking.setBookingId(UUID.randomUUID().toString());
+
+                booking.setFlightId(flight.getId());
+                booking.setFlightName(flight.getFlightName());
+                booking.setFromLocation(flight.getFrom());
+                booking.setToLocation(flight.getTo());
 
                 booking.setBookingTime(LocalDateTime.now());
 
@@ -45,10 +51,13 @@ public class BookingService {
                 booking.setTotalPrice(price);
 
                 booking.setBookingStatus("ACTIVE");
+
                 booking.setRefundAmount(0);
                 booking.setRefundStatus("NA");
+
                 booking.setCancellationReason(null);
                 booking.setCancellationTime(null);
+
                 user.getBookings().add(booking);
                 userRepository.save(user);
                 return booking;
@@ -58,6 +67,7 @@ public class BookingService {
         }
         throw new RuntimeException("User or flight not found");
     }
+
     public Booking bookhotel(String userId,String hotelId,int rooms,double price){
         Optional<Users> usersOptional =userRepository.findById(userId);
         Optional<Hotel> hotelOptional = hotelRepository.findById(hotelId);

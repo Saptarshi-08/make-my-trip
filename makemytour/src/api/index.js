@@ -76,6 +76,16 @@ export const getflight = async () => {
   }
 };
 
+export const getFlightStatus = async (flightId) => {
+  try {
+    const res = await axios.get(`${BACKEND_URL}/tracking/${flightId}`);
+
+    return res.data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 export const addflight = async (
   flightName,
   from,
