@@ -1,5 +1,4 @@
 import { useRouter } from "next/router";
-
 import {
     Plane,
     Luggage,
@@ -14,31 +13,19 @@ import {
     Info,
     ArrowRight,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import {
     getflight,
     handleflightbooking,
-    getReviews
+    getReviews,
+    getCurrentFlightPrice,
+    freezeFlightPrice,
+    getFlightPriceHistory,
+    getFrozenFlightPrice,
 } from "@/api";
-
-import ReviewForm
-    from "@/components/reviews/ReviewForm";
-
-import ReviewList
-    from "@/components/reviews/ReviewList";
+import ReviewForm from "@/components/reviews/ReviewForm";
+import ReviewList from "@/components/reviews/ReviewList";
 import { useDispatch, useSelector } from "react-redux";
-interface Flight {
-    id: string; // Unique identifier for the flight
-    flightName: string; // Name of the flight
-    from: string; // Departure location
-    to: string; // Arrival location
-    departureTime: string; // Departure time (ISO 8601 string recommended)
-    arrivalTime: string; // Arrival time (ISO 8601 string recommended)
-    price: number; // Price of the flight
-    availableSeats: number; // Number of available seats
-    averageRating: number;
-    reviewCount: number;
-}
 import {
     Dialog,
     DialogContent,
@@ -52,7 +39,426 @@ import { Label } from "@/components/ui/label";
 import { Users, Ticket } from "lucide-react";
 import SignupDialog from "@/components/SignupDialog";
 import Loader from "@/components/Loader";
+import PriceHistoryChart from "@/components/PriceHistoryChart";
+import PriceFreezeCard from "@/components/PriceFreezeCard";
 import { setUser } from "@/store";
+
+interface Flight {
+    id: string;
+
+    flightName: string;
+
+    from: string;
+
+    to: string;
+
+    departureTime: string;
+
+    arrivalTime: string;
+
+    price: number;
+
+    currentPrice: number;
+
+    pricingReason: string;
+
+    dynamicPricingEnabled: boolean;
+
+    availableSeats: number;
+
+    averageRating: number;
+
+    reviewCount: number;
+
+    seatRows: number;
+
+    seatColumns: number;
+
+    bookedSeats: string[];
+}
+interface GeneratedSeat {
+    seatNumber: string;
+    booked: boolean;
+    seatType: string;
+    premium: boolean;
+}
+
+interface BookingContentProps {
+    flight: Flight;
+    quantity: number;
+    setQuantity: React.Dispatch<React.SetStateAction<number>>;
+
+    selectedSeats: string[];
+    setSelectedSeats: React.Dispatch<React.SetStateAction<string[]>>;
+
+    savePreference: boolean;
+    setSavePreference: React.Dispatch<React.SetStateAction<boolean>>;
+
+    currentPrice: number;
+    premiumCharge: number;
+    totalTaxes: number;
+    totalOtherServices: number;
+    totalDiscounts: number;
+    grandTotal: number;
+
+    generatedSeats: GeneratedSeat[];
+
+    preferredSeatType: string;
+
+    toggleSeat: (seatNumber: string) => void;
+
+    handleQuantityChange: (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => void;
+
+    handlebooking: (e: React.FormEvent) => void;
+}
+const BookingContent = ({
+    flight,
+    quantity,
+    setQuantity,
+    selectedSeats,
+    setSelectedSeats,
+    savePreference,
+    setSavePreference,
+    currentPrice,
+    premiumCharge,
+    totalTaxes,
+    totalOtherServices,
+    totalDiscounts,
+    grandTotal,
+    generatedSeats,
+    preferredSeatType,
+    toggleSeat,
+    handleQuantityChange,
+    handlebooking,
+}: BookingContentProps) => {
+    useEffect(() => {
+        console.log("BookingContent mounted");
+
+        return () => console.log("BookingContent unmounted");
+    }, []);
+
+    console.log("BookingContent rendered");
+
+    return (
+        <DialogContent
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            className="sm:max-w-[700px] bg-white max-h-[90vh] overflow-y-auto"
+        >
+            <DialogHeader>
+                <DialogTitle className="text-2xl font-bold flex items-center">
+                    <Plane className="w-6 h-6 mr-2" />
+                    Flight Booking Details
+                </DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-6 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="flightName" className="flex items-center">
+                            <Plane className="w-4 h-4 mr-2" />
+                            Flight Name
+                        </Label>
+                        <Input id="flightName" value={flight?.flightName} readOnly />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="from" className="flex items-center">
+                            <MapPin className="w-4 h-4 mr-2" />
+                            From
+                        </Label>
+                        <Input id="from" value={flight?.from} readOnly />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="to" className="flex items-center">
+                            <MapPin className="w-4 h-4 mr-2" />
+                            To
+                        </Label>
+                        <Input id="to" value={flight?.to} readOnly />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="departureTime" className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Departure Time
+                        </Label>
+                        <Input
+                            id="departureTime"
+                            value={new Date(flight.departureTime).toLocaleString()}
+                            readOnly
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="arrivalTime" className="flex items-center">
+                            <Clock className="w-4 h-4 mr-2" />
+                            Arrival Time
+                        </Label>
+                        <Input
+                            id="arrivalTime"
+                            value={new Date(flight.arrivalTime).toLocaleString()}
+                            readOnly
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="quantity" className="flex items-center">
+                            <Ticket className="w-4 h-4 mr-2" />
+                            Number of Tickets
+                        </Label>
+                        <Input
+                            id="quantity"
+                            type="number"
+                            min="1"
+                            max={flight.availableSeats}
+                            value={quantity}
+                            onChange={handleQuantityChange}
+                        />
+                    </div>
+                </div>
+
+                <div className="border rounded-lg p-5">
+                    <h3 className="text-lg font-bold mb-4">Select Your Seats</h3>
+                    <div className="mb-5 text-center">
+                        <div className="text-gray-500 text-sm font-semibold tracking-widest">
+                            ✈ FRONT OF AIRCRAFT
+                        </div>
+
+                        <div className="mt-2 border-t-2 border-dashed border-gray-300"></div>
+                    </div>
+
+                    <div className="flex gap-6 mb-4 text-sm flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded bg-green-500"></div>
+                            Available
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded bg-yellow-400"></div>
+                            Premium
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded bg-purple-500"></div>
+                            <span>Recommended</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded bg-blue-600"></div>
+                            Selected
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded bg-gray-400"></div>
+                            Booked
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        {/* Column Headers */}
+
+                        <div className="flex justify-center items-center">
+                            <div className="w-8"></div>
+
+                            <div className="flex gap-3">
+                                <div className="w-14 text-center font-bold">A</div>
+                                <div className="w-14 text-center font-bold">B</div>
+                                <div className="w-14 text-center font-bold">C</div>
+                            </div>
+
+                            <div className="w-12 text-center text-gray-400 text-sm">
+                                AISLE
+                            </div>
+
+                            <div className="flex gap-3">
+                                <div className="w-14 text-center font-bold">D</div>
+                                <div className="w-14 text-center font-bold">E</div>
+                                <div className="w-14 text-center font-bold">F</div>
+                            </div>
+                        </div>
+
+                        {Array.from({ length: flight.seatRows }, (_, row) => (
+                            <Fragment key={row}>
+                                {row === 10 && (
+                                    <div className="flex justify-center my-3">
+                                        <div className="px-5 py-1 rounded-full bg-orange-100 text-orange-700 font-semibold text-sm">
+                                            ✈ EXIT ROW
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div key={row} className="flex justify-center items-center">
+                                    <div className="w-8 font-semibold text-gray-500">
+                                        {row + 1}
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        {generatedSeats
+                                            .slice(row * 6, row * 6 + 3)
+                                            .map((seat) => {
+                                                const selected = selectedSeats.includes(
+                                                    seat.seatNumber,
+                                                );
+
+                                                const recommended =
+                                                    preferredSeatType === seat.seatType &&
+                                                    !seat.booked &&
+                                                    !selected;
+
+                                                return (
+                                                    <button
+                                                        key={seat.seatNumber}
+                                                        disabled={seat.booked}
+                                                        onClick={() => toggleSeat(seat.seatNumber)}
+                                                        className={`
+                                    rounded-lg
+                                    p-3
+                                    border
+                                    transition-all
+                                    text-sm
+                                    font-semibold
+
+                                    ${seat.booked
+                                                                ? "bg-gray-300 cursor-not-allowed"
+                                                                : selected
+                                                                    ? "bg-blue-600 text-white"
+                                                                    : recommended
+                                                                        ? "bg-purple-500 ring-2 ring-purple-300 text-white"
+                                                                        : seat.premium
+                                                                            ? "bg-yellow-400 hover:bg-yellow-500 text-black"
+                                                                            : "bg-green-500 hover:bg-green-600 text-white"
+                                                            }
+                                `}
+                                                    >
+                                                        <div>{seat.seatNumber}</div>
+                                                        <div className="text-xs">{seat.seatType}</div>
+                                                    </button>
+                                                );
+                                            })}
+                                    </div>
+
+                                    <div className="w-12"></div>
+
+                                    <div className="flex gap-3">
+                                        {generatedSeats
+                                            .slice(row * 6 + 3, row * 6 + 6)
+                                            .map((seat) => {
+                                                const selected = selectedSeats.includes(
+                                                    seat.seatNumber,
+                                                );
+
+                                                const recommended =
+                                                    preferredSeatType === seat.seatType &&
+                                                    !seat.booked &&
+                                                    !selected;
+
+                                                return (
+                                                    <button
+                                                        key={seat.seatNumber}
+                                                        disabled={seat.booked}
+                                                        onClick={() => toggleSeat(seat.seatNumber)}
+                                                        className={`
+                                    rounded-lg
+                                    p-3
+                                    border
+                                    transition-all
+                                    text-sm
+                                    font-semibold
+
+                                    ${seat.booked
+                                                                ? "bg-gray-300 cursor-not-allowed"
+                                                                : selected
+                                                                    ? "bg-blue-600 text-white"
+                                                                    : recommended
+                                                                        ? "bg-purple-500 ring-2 ring-purple-300 text-white"
+                                                                        : seat.premium
+                                                                            ? "bg-yellow-400 hover:bg-yellow-500 text-black"
+                                                                            : "bg-green-500 hover:bg-green-600 text-white"
+                                                            }
+                                `}
+                                                    >
+                                                        <div>{seat.seatNumber}</div>
+                                                        <div className="text-xs">{seat.seatType}</div>
+                                                    </button>
+                                                );
+                                            })}
+                                    </div>
+                                </div>
+                            </Fragment>
+                        ))}
+                    </div>
+
+                    <div className="mt-5">
+                        <p className="font-medium">Selected Seats:</p>
+                        <p className="text-gray-600">
+                            {selectedSeats.length === 0 ? "None" : selectedSeats.join(", ")}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-2">
+                            {selectedSeats.length} of {quantity} seat
+                            {quantity > 1 ? "s" : ""} selected
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3 mt-5">
+                    <input
+                        id="savePreference"
+                        type="checkbox"
+                        checked={savePreference}
+                        onChange={(e) => setSavePreference(e.target.checked)}
+                    />
+
+                    <Label htmlFor="savePreference">
+                        Save these seat preferences for future bookings
+                    </Label>
+                </div>
+                <div className="bg-gray-100 rounded-lg p-4">
+                    <h3 className="text-lg font-bold mb-4 flex items-center">
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Fare Summary
+                    </h3>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Base Fare</span>
+                            <span className="font-medium">
+                                ₹ {(currentPrice * quantity).toLocaleString()}
+                            </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Premium Seat Charges</span>
+                            <span className="font-medium">
+                                ₹ {premiumCharge.toLocaleString()}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Taxes and Surcharges</span>
+                            <span className="font-medium">
+                                ₹ {totalTaxes.toLocaleString()}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Other Services</span>
+                            <span className="font-medium">
+                                ₹ {totalOtherServices.toLocaleString()}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center text-green-600">
+                            <span className="font-medium">Discounts</span>
+                            <span className="font-medium">
+                                - ₹ {Math.abs(totalDiscounts).toLocaleString()}
+                            </span>
+                        </div>
+                        <div className="border-t pt-2 mt-2">
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-lg">Total Amount</span>
+                                <span className="font-bold text-lg">
+                                    ₹ {grandTotal.toLocaleString()}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <Button className="w-full mt-4" onClick={handlebooking}>
+                Proceed to Payment
+            </Button>
+        </DialogContent>
+    );
+};
+
 const BookFlightPage = () => {
     const router = useRouter();
     const { id } = router.query;
@@ -60,32 +466,28 @@ const BookFlightPage = () => {
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
     const [open, setopem] = useState(false);
-    const [reviews, setReviews] =
-        useState<any[]>([]);
+    const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+    const [savePreference, setSavePreference] = useState(false);
+    const [reviews, setReviews] = useState<any[]>([]);
+    const [currentPrice, setCurrentPrice] = useState(0);
+    const [pricingReason, setPricingReason] = useState("");
+    const [priceHistory, setPriceHistory] = useState([]);
+    const [useFrozenPrice, setUseFrozenPrice] = useState(false);
+    const [freezeExpiry, setFreezeExpiry] = useState("");
+    const [freezeTimeLeft, setFreezeTimeLeft] = useState("");
 
-    const [sort, setSort] =
-        useState("newest");
-    const refreshReviews = async (
-        flightId: string
-    ) => {
-
+    const [sort, setSort] = useState("newest");
+    const refreshReviews = async (flightId: string) => {
         try {
-
-            const data =
-                await getReviews(
-                    "FLIGHT",
-                    flightId,
-                    sort
-                );
+            const data = await getReviews("FLIGHT", flightId, sort);
 
             setReviews(data);
-
         } catch (error) {
-
             console.log(error);
         }
     };
     const user = useSelector((state: any) => state.user.user);
+    const preferredSeatType = user?.preferredSeatType ?? "";
     const dispatch = useDispatch();
     useEffect(() => {
         const fetchFlights = async () => {
@@ -94,12 +496,45 @@ const BookFlightPage = () => {
                 const filteredData = data.filter((flight: any) => flight.id === id);
                 setFlights(filteredData);
                 if (filteredData.length > 0) {
-
-                    await refreshReviews(
-                        filteredData[0].id
+                    setCurrentPrice(
+                        filteredData[0].currentPrice || filteredData[0].price,
                     );
+
+                    setPricingReason(filteredData[0].pricingReason || "Standard Pricing");
                 }
-                console.log(filteredData);
+                if (filteredData.length > 0) {
+                    await refreshReviews(filteredData[0].id);
+
+                    const livePrice = await getCurrentFlightPrice(filteredData[0].id);
+
+                    setCurrentPrice(livePrice);
+                    const history = await getFlightPriceHistory(filteredData[0].id);
+
+                    setPriceHistory(history);
+                    if (user?.id) {
+                        const frozen = await getFrozenFlightPrice(
+                            user.id,
+                            filteredData[0].id,
+                        );
+
+                        if (frozen.active) {
+                            setUseFrozenPrice(true);
+                            setFreezeExpiry(frozen.expiry);
+                            setCurrentPrice(frozen.price);
+                        } else {
+                            setUseFrozenPrice(false);
+                            setFreezeExpiry("");
+                        }
+                    }
+
+                    const latestFlight = (await getflight()).find(
+                        (f: Flight) => f.id === filteredData[0].id,
+                    );
+
+                    if (latestFlight) {
+                        setPricingReason(latestFlight.pricingReason);
+                    }
+                }
             } catch (error) {
                 console.error("Error fetching flights:", error);
             } finally {
@@ -109,6 +544,39 @@ const BookFlightPage = () => {
         fetchFlights();
     }, [id, sort]);
 
+    const userId = user?.id ?? null;
+    useEffect(() => {
+        if (flights.length === 0) return;
+
+        const interval = setInterval(async () => {
+            try {
+                if (useFrozenPrice && user?.id) {
+                    const frozen = await getFrozenFlightPrice(user.id, flights[0].id);
+
+                    if (frozen.active) {
+                        setCurrentPrice(frozen.price);
+                        setFreezeExpiry(frozen.expiry);
+                    } else {
+                        setUseFrozenPrice(false);
+
+                        const latest = await getCurrentFlightPrice(flights[0].id);
+                        setCurrentPrice(latest);
+                    }
+                } else {
+                    const latest = await getCurrentFlightPrice(flights[0].id);
+                    setCurrentPrice(latest);
+                }
+
+                const history = await getFlightPriceHistory(flights[0].id);
+                setPriceHistory(history);
+            } catch (err) {
+                console.log(err);
+            }
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [flights, useFrozenPrice, userId]);
+
     if (loading) {
         return <Loader />;
     }
@@ -116,6 +584,36 @@ const BookFlightPage = () => {
         return <div>No flight data available for this ID.</div>;
     }
     const flight = flights[0];
+    const seatLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+    const generatedSeats: {
+        seatNumber: string;
+        booked: boolean;
+        seatType: string;
+        premium: boolean;
+    }[] = [];
+
+    for (let row = 1; row <= flight.seatRows; row++) {
+        for (let col = 0; col < flight.seatColumns; col++) {
+            const seatNumber = `${row}${seatLetters[col]}`;
+
+            generatedSeats.push({
+                seatNumber,
+
+                booked: flight.bookedSeats.includes(seatNumber),
+
+                seatType:
+                    col === 0 || col === 5
+                        ? "WINDOW"
+                        : col === 2 || col === 3
+                            ? "AISLE"
+                            : "MIDDLE",
+
+                premium: row <= 5,
+            });
+        }
+    }
+
     const flightDetails = {
         from: "Bengaluru",
         to: "New Delhi",
@@ -195,27 +693,62 @@ const BookFlightPage = () => {
 
     const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
+
         const value = Number.parseInt(e.target.value);
+
         setQuantity(
-            isNaN(value) ? 1 : Math.max(1, Math.min(value, flight.availableSeats))
+            isNaN(value) ? 1 : Math.max(1, Math.min(value, flight.availableSeats)),
         );
+
+        setSelectedSeats([]);
     };
 
-    const totalPrice = flight?.price * quantity;
-    const totalTaxes = fareSummary?.taxes * quantity;
-    const totalOtherServices = fareSummary?.otherServices * quantity;
-    const totalDiscounts = fareSummary?.discounts * quantity;
+    const toggleSeat = (seatNumber: string) => {
+        console.log("Before click, open =", open);
+        if (selectedSeats.includes(seatNumber)) {
+            setSelectedSeats(selectedSeats.filter((seat) => seat !== seatNumber));
+
+            return;
+        }
+
+        if (selectedSeats.length >= quantity) {
+            return;
+        }
+
+        setSelectedSeats([...selectedSeats, seatNumber]);
+    };
+
+    const premiumSeatCharge = 800;
+
+    const premiumSeatsSelected = generatedSeats.filter(
+        (seat) => selectedSeats.includes(seat.seatNumber) && seat.premium,
+    ).length;
+
+    const premiumCharge = premiumSeatsSelected * premiumSeatCharge;
+
+    const baseFare = currentPrice * quantity;
+
+    const totalPrice = baseFare;
+    const totalTaxes = fareSummary.taxes * quantity;
+    const totalOtherServices = fareSummary.otherServices * quantity;
+    const totalDiscounts = fareSummary.discounts * quantity;
     const grandTotal =
-        totalPrice + totalTaxes + totalOtherServices - totalDiscounts;
+        baseFare + premiumCharge + totalTaxes + totalOtherServices - totalDiscounts;
 
     const handlebooking = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (selectedSeats.length !== quantity) {
+            alert(`Please select ${quantity} seat${quantity > 1 ? "s" : ""}.`);
+
+            return;
+        }
         try {
             const data = await handleflightbooking(
                 user?.id,
                 flight?.id,
-                quantity,
-                grandTotal
+                selectedSeats,
+                savePreference,
+                useFrozenPrice,
             );
             const updateuser = {
                 ...user,
@@ -229,120 +762,7 @@ const BookFlightPage = () => {
             console.log(error);
         }
     };
-    const BookingContent = () => (
-        <DialogContent className="sm:max-w-[600px] bg-white">
-            <DialogHeader>
-                <DialogTitle className="text-2xl font-bold flex items-center">
-                    <Plane className="w-6 h-6 mr-2" />
-                    Flight Booking Details
-                </DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-6 mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="flightName" className="flex items-center">
-                            <Plane className="w-4 h-4 mr-2" />
-                            Flight Name
-                        </Label>
-                        <Input id="flightName" value={flight?.flightName} readOnly />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="from" className="flex items-center">
-                            <MapPin className="w-4 h-4 mr-2" />
-                            From
-                        </Label>
-                        <Input id="from" value={flight?.from} readOnly />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="to" className="flex items-center">
-                            <MapPin className="w-4 h-4 mr-2" />
-                            To
-                        </Label>
-                        <Input id="to" value={flight?.to} readOnly />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="departureTime" className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-2" />
-                            Departure Time
-                        </Label>
-                        <Input
-                            id="departureTime"
-                            value={new Date(flight.departureTime).toLocaleString()}
-                            readOnly
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="arrivalTime" className="flex items-center">
-                            <Clock className="w-4 h-4 mr-2" />
-                            Arrival Time
-                        </Label>
-                        <Input
-                            id="arrivalTime"
-                            value={new Date(flight.arrivalTime).toLocaleString()}
-                            readOnly
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="quantity" className="flex items-center">
-                            <Ticket className="w-4 h-4 mr-2" />
-                            Number of Tickets
-                        </Label>
-                        <Input
-                            id="quantity"
-                            type="number"
-                            min="1"
-                            max={flight.availableSeats}
-                            value={quantity}
-                            onChange={handleQuantityChange}
-                        />
-                    </div>
-                </div>
-                <div className="bg-gray-100 rounded-lg p-4">
-                    <h3 className="text-lg font-bold mb-4 flex items-center">
-                        <CreditCard className="w-5 h-5 mr-2" />
-                        Fare Summary
-                    </h3>
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Base Fare</span>
-                            <span className="font-medium">
-                                ₹ {totalPrice.toLocaleString()}
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Taxes and Surcharges</span>
-                            <span className="font-medium">
-                                ₹ {totalTaxes.toLocaleString()}
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Other Services</span>
-                            <span className="font-medium">
-                                ₹ {totalOtherServices.toLocaleString()}
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center text-green-600">
-                            <span className="font-medium">Discounts</span>
-                            <span className="font-medium">
-                                - ₹ {Math.abs(totalDiscounts).toLocaleString()}
-                            </span>
-                        </div>
-                        <div className="border-t pt-2 mt-2">
-                            <div className="flex justify-between items-center">
-                                <span className="font-bold text-lg">Total Amount</span>
-                                <span className="font-bold text-lg">
-                                    ₹ {grandTotal.toLocaleString()}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <Button className="w-full mt-4" onClick={handlebooking}>
-                Proceed to Payment
-            </Button>
-        </DialogContent>
-    );
+    console.log("Dialog open:", open);
     return (
         <div className="min-h-screen bg-[#f4f7fa]">
             <div className="max-w-7xl mx-auto px-4 py-8">
@@ -359,6 +779,9 @@ const BookFlightPage = () => {
                                             <ArrowRight className="w-5 h-5 mx-2" />
                                             <span>{flight?.to}</span>
                                         </h2>
+                                        <span className="bg-orange-100 text-orange-700 text-xs px-3 py-1 rounded-full font-semibold">
+                                            Dynamic Pricing
+                                        </span>
                                         <span className="bg-green-100 text-green-600 text-xs px-3 py-1 rounded-full font-medium">
                                             CANCELLATION FEES APPLY
                                         </span>
@@ -469,58 +892,35 @@ const BookFlightPage = () => {
                             </div>
                         </div>
                         <div className="bg-white rounded-xl shadow-lg p-6">
-
                             <ReviewForm
                                 targetType="FLIGHT"
                                 targetId={flight.id}
                                 user={user}
-                                refreshReviews={() =>
-                                    refreshReviews(
-                                        flight.id
-                                    )
-                                }
+                                refreshReviews={() => refreshReviews(flight.id)}
                             />
 
                             <div className="flex justify-between items-center mb-4">
-
-                                <h3 className="font-bold text-xl">
-                                    Reviews
-                                </h3>
+                                <h3 className="font-bold text-xl">Reviews</h3>
 
                                 <select
                                     className="border rounded p-2"
                                     value={sort}
-                                    onChange={(e) =>
-                                        setSort(e.target.value)
-                                    }
+                                    onChange={(e) => setSort(e.target.value)}
                                 >
-                                    <option value="newest">
-                                        Newest
-                                    </option>
+                                    <option value="newest">Newest</option>
 
-                                    <option value="highest">
-                                        Highest Rated
-                                    </option>
+                                    <option value="highest">Highest Rated</option>
 
-                                    <option value="helpful">
-                                        Most Helpful
-                                    </option>
+                                    <option value="helpful">Most Helpful</option>
                                 </select>
-
                             </div>
 
                             <ReviewList
                                 reviews={reviews}
                                 user={user}
-                                refreshReviews={() =>
-                                    refreshReviews(
-                                        flight.id
-                                    )
-                                }
+                                refreshReviews={() => refreshReviews(flight.id)}
                             />
-
                         </div>
-
                         {/* Hotel Offers */}
                         <div className="bg-white rounded-xl shadow-sm p-6">
                             <div className="flex items-center justify-between mb-6">
@@ -580,15 +980,10 @@ const BookFlightPage = () => {
 
                     {/* Fare Summary */}
                     <div className="lg:col-span-1">
-
                         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-
-                            <h2 className="text-lg font-bold mb-4">
-                                Traveler Rating
-                            </h2>
+                            <h2 className="text-lg font-bold mb-4">Traveler Rating</h2>
 
                             <div className="flex items-center justify-between">
-
                                 <div
                                     className="
                     bg-blue-500
@@ -603,38 +998,56 @@ const BookFlightPage = () => {
                     justify-center
                 "
                                 >
-                                    {
-                                        flight.averageRating
-                                            ? flight.averageRating.toFixed(1)
-                                            : "0.0"
-                                    }
+                                    {flight.averageRating
+                                        ? flight.averageRating.toFixed(1)
+                                        : "0.0"}
                                 </div>
 
                                 <div>
+                                    <p className="text-gray-600">Total Reviews</p>
 
-                                    <p className="text-gray-600">
-                                        Total Reviews
-                                    </p>
-
-                                    <p className="font-bold text-lg">
-                                        {flight.reviewCount}
-                                    </p>
-
+                                    <p className="font-bold text-lg">{flight.reviewCount}</p>
                                 </div>
-
                             </div>
-
                         </div>
                         <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
                             <h2 className="text-lg font-bold mb-6 flex items-center">
                                 <CreditCard className="w-5 h-5 mr-2 text-gray-600" />
                                 Fare Summary
                             </h2>
+                            <div className="mb-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-blue-700">
+                                        🔥 Live Dynamic Pricing
+                                    </span>
+
+                                    <span className="text-xs text-blue-600">Auto Updates</span>
+                                </div>
+
+                                <div className="mt-4">
+                                    <p className="text-xs text-gray-500">Current Price</p>
+
+                                    <p className="text-3xl font-bold text-blue-700">
+                                        ₹ {currentPrice.toLocaleString()}
+                                    </p>
+                                </div>
+
+                                <div className="mt-3">
+                                    <p className="text-sm text-gray-600">{pricingReason}</p>
+                                </div>
+                            </div>
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-600">Base Fare</span>
                                     <span className="font-medium">
-                                        ₹ {totalPrice.toLocaleString()}
+                                        ₹ {(currentPrice * quantity).toLocaleString()}
+                                    </span>
+                                </div>
+
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-600">Premium Seat Charges</span>
+                                    <span className="font-medium">
+                                        ₹ {premiumCharge.toLocaleString()}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
@@ -656,11 +1069,18 @@ const BookFlightPage = () => {
                                     </span>
                                 </div>
                                 <div className="border-t pt-2 mt-2">
-                                    <div className="flex justify-between items-center">
-                                        <span className="font-bold text-lg">Total Amount</span>
-                                        <span className="font-bold text-lg">
-                                            ₹ {grandTotal.toLocaleString()}
-                                        </span>
+                                    <div className="border-t pt-4 mt-4">
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-xl">Total</span>
+
+                                            <span className="font-bold text-2xl">
+                                                ₹ {grandTotal.toLocaleString()}
+                                            </span>
+                                        </div>
+
+                                        <p className="text-xs text-gray-500 mt-2 text-right">
+                                            🔄 Updates every 30 seconds
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -670,8 +1090,60 @@ const BookFlightPage = () => {
                                         Book Now
                                     </Button>
                                 </DialogTrigger>
+
+                                <Button
+                                    variant="secondary"
+                                    disabled={useFrozenPrice}
+                                    className="w-full mt-3"
+                                    onClick={async () => {
+                                        try {
+                                            await freezeFlightPrice(user.id, flight.id);
+
+                                            const frozen = await getFrozenFlightPrice(user.id, flight.id);
+
+                                            setUseFrozenPrice(true);
+                                            setFreezeExpiry(frozen.expiry);
+                                            setCurrentPrice(frozen.price);
+
+                                            alert("Price frozen successfully for 15 minutes.");
+                                        } catch (err) {
+                                            console.log(err);
+                                        }
+                                    }}
+                                >
+                                    {useFrozenPrice ? "Price Frozen" : "Freeze Current Price"}
+                                </Button>
+
+                                <PriceFreezeCard
+                                    frozen={useFrozenPrice}
+                                    expiry={freezeExpiry}
+                                    onExpired={() => {
+                                        setUseFrozenPrice(false);
+                                        setFreezeExpiry("");
+                                    }}
+                                />
+                                <PriceHistoryChart history={priceHistory} />
                                 {user ? (
-                                    <BookingContent />
+                                    <BookingContent
+                                        flight={flight}
+                                        quantity={quantity}
+                                        setQuantity={setQuantity}
+                                        selectedSeats={selectedSeats}
+                                        setSelectedSeats={setSelectedSeats}
+                                        savePreference={savePreference}
+                                        setSavePreference={setSavePreference}
+                                        currentPrice={currentPrice}
+                                        premiumCharge={premiumCharge}
+                                        totalTaxes={totalTaxes}
+                                        totalOtherServices={totalOtherServices}
+                                        totalDiscounts={totalDiscounts}
+                                        grandTotal={grandTotal}
+                                        generatedSeats={generatedSeats}
+                                        preferredSeatType={preferredSeatType}
+                                        toggleSeat={toggleSeat}
+                                        handleQuantityChange={handleQuantityChange}
+                                        handlebooking={handlebooking}
+                                    />
                                 ) : (
                                     <DialogContent className="bg-white">
                                         <DialogHeader>

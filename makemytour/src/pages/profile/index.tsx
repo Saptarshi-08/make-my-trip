@@ -41,6 +41,7 @@ const index = () => {
                 console.error(error);
             }
         };
+        refreshUser();
     }, [user?.email]);
 
     useEffect(() => {
@@ -64,8 +65,8 @@ const index = () => {
                             booking.flightId
                             ];
 
-                        console.log("Old:", oldStatus);
-                        console.log("New:", status.flightStatus);
+                        // console.log("Old:", oldStatus);
+                        // console.log("New:", status.flightStatus);
                         if (
                             oldStatus !== undefined &&
                             oldStatus !== status.flightStatus
@@ -114,17 +115,11 @@ const index = () => {
             const updatedPrevious:
                 Record<string, string> = {};
 
-            Object.keys(statuses)
-                .forEach((flightId) => {
+            Object.entries(statuses).forEach(([flightId, status]) => {
+                if (!status) return;
 
-                    updatedPrevious[
-                        flightId
-                    ] =
-                        statuses[
-                            flightId
-                        ].flightStatus;
-
-                });
+                updatedPrevious[flightId] = status.flightStatus;
+            });
 
             previousStatusesRef.current = updatedPrevious;
 

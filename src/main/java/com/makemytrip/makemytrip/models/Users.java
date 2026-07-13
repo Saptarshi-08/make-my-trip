@@ -16,6 +16,8 @@ public class Users {
     private String password;
     private String role;
     private String phoneNumber;
+    private String preferredSeatType;
+    private String preferredRoomType;
     private List<Booking> bookings = new ArrayList<>();;
 
 
@@ -43,6 +45,21 @@ public class Users {
     public String getRole() {return role;}
     public void setPassword(String password) {this.password = password;}
     public void setRole(String role) {this.role = role;}
+    public String getPreferredSeatType() {
+        return preferredSeatType;
+    }
+
+    public void setPreferredSeatType(String preferredSeatType) {
+        this.preferredSeatType = preferredSeatType;
+    }
+
+    public String getPreferredRoomType() {
+        return preferredRoomType;
+    }
+
+    public void setPreferredRoomType(String preferredRoomType) {
+        this.preferredRoomType = preferredRoomType;
+    }
     public List<Booking> getBookings(){return bookings;}
     public void setBookings(List<Booking> bookings){this.bookings=bookings;}
 
@@ -66,6 +83,14 @@ public class Users {
         private String flightName;
         private String fromLocation;
         private String toLocation;
+
+        private String hotelId;
+        private String hotelName;
+        private String hotelLocation;
+
+        private List<String> selectedSeats = new ArrayList<>();
+        private String roomType;
+        private boolean savePreference = false;
 
         // Getters and Setters
         public String getType() {
@@ -178,6 +203,54 @@ public class Users {
 
         public void setToLocation(String toLocation) {
             this.toLocation = toLocation;
+        }
+
+        public String getHotelId() {
+            return hotelId;
+        }
+
+        public void setHotelId(String hotelId) {
+            this.hotelId = hotelId;
+        }
+
+        public String getHotelName() {
+            return hotelName;
+        }
+
+        public void setHotelName(String hotelName) {
+            this.hotelName = hotelName;
+        }
+
+        public String getHotelLocation() {
+            return hotelLocation;
+        }
+
+        public void setHotelLocation(String hotelLocation) {
+            this.hotelLocation = hotelLocation;
+        }
+
+        public List<String> getSelectedSeats() {
+            return selectedSeats;
+        }
+
+        public void setSelectedSeats(List<String> selectedSeats) {
+            this.selectedSeats = selectedSeats;
+        }
+
+        public String getRoomType() {
+            return roomType;
+        }
+
+        public void setRoomType(String roomType) {
+            this.roomType = roomType;
+        }
+
+        public boolean isSavePreference() {
+            return savePreference;
+        }
+
+        public void setSavePreference(boolean savePreference) {
+            this.savePreference = savePreference;
         }
     }
 }

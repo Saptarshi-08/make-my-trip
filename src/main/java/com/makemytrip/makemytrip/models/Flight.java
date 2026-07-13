@@ -1,6 +1,10 @@
 package com.makemytrip.makemytrip.models;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Document(collection = "flight")
 public class Flight {
@@ -12,7 +16,7 @@ public class Flight {
     private String departureTime;
     private String arrivalTime;
     private double price;
-    private int availableSeats;
+    private int availableSeats = 180;
     private double averageRating = 0.0;
     private int reviewCount = 0;
     private String flightStatus = "ON_TIME";
@@ -21,6 +25,16 @@ public class Flight {
     private String revisedArrivalTime;
     private String estimatedArrivalTime;
     private String lastUpdated;
+    private int seatRows = 30;
+    private int seatColumns = 6;
+    private List<String> bookedSeats = new ArrayList<>();
+    private double basePrice;
+    private double currentPrice;
+    private boolean dynamicPricingEnabled = true;
+    private List<PriceHistory> priceHistory = new ArrayList<>();
+    private Map<String, Double> frozenPrices = new HashMap<>();
+    private Map<String, String> frozenPriceExpiry = new HashMap<>();
+    private String pricingReason = "";
 
     // Getters and Setters
 
@@ -150,5 +164,85 @@ public class Flight {
 
     public void setLastUpdated(String lastUpdated) {
         this.lastUpdated = lastUpdated;
+    }
+
+    public int getSeatRows() {
+        return seatRows;
+    }
+
+    public void setSeatRows(int seatRows) {
+        this.seatRows = seatRows;
+    }
+
+    public int getSeatColumns() {
+        return seatColumns;
+    }
+
+    public void setSeatColumns(int seatColumns) {
+        this.seatColumns = seatColumns;
+    }
+
+    public List<String> getBookedSeats() {
+        return bookedSeats;
+    }
+
+    public void setBookedSeats(List<String> bookedSeats) {
+        this.bookedSeats = bookedSeats;
+    }
+
+    public double getBasePrice() {
+        return basePrice;
+    }
+
+    public void setBasePrice(double basePrice) {
+        this.basePrice = basePrice;
+    }
+
+    public double getCurrentPrice() {
+        return currentPrice;
+    }
+
+    public void setCurrentPrice(double currentPrice) {
+        this.currentPrice = currentPrice;
+    }
+
+    public boolean isDynamicPricingEnabled() {
+        return dynamicPricingEnabled;
+    }
+
+    public void setDynamicPricingEnabled(boolean dynamicPricingEnabled) {
+        this.dynamicPricingEnabled = dynamicPricingEnabled;
+    }
+
+    public List<PriceHistory> getPriceHistory() {
+        return priceHistory;
+    }
+
+    public void setPriceHistory(List<PriceHistory> priceHistory) {
+        this.priceHistory = priceHistory;
+    }
+
+    public Map<String, Double> getFrozenPrices() {
+        return frozenPrices;
+    }
+
+    public void setFrozenPrices(Map<String, Double> frozenPrices) {
+        this.frozenPrices = frozenPrices;
+    }
+
+    public Map<String, String> getFrozenPriceExpiry() {
+        return frozenPriceExpiry;
+    }
+
+    public void setFrozenPriceExpiry(Map<String, String> frozenPriceExpiry) {
+        this.frozenPriceExpiry = frozenPriceExpiry;
+    }
+
+    public String getPricingReason() {
+        return pricingReason;
+    }
+
+    public void setPricingReason(String pricingReason) {
+        this.pricingReason = pricingReason;
     }
 }

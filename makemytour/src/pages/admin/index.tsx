@@ -152,134 +152,371 @@ function UserSearch() {
     );
 }
 
+interface RoomType {
+
+    type: string;
+
+    available: number;
+
+    upgradeCharge: number;
+
+    description: string;
+
+    images: string[];
+}
+
 interface Hotel {
     id?: string;
     hotelName: string;
     location: string;
     pricePerNight: number;
-    availableRooms: number;
     amenities: string;
+    roomTypes: RoomType[];
 }
 
 function AddEditHotel({ hotel }: { hotel: Hotel | null }) {
+    const emptyRoom = (): RoomType => ({
+        type: "",
+        available: 0,
+        upgradeCharge: 0,
+        description: "",
+        images: [""],
+    });
+
     const [formData, setFormData] = useState<Hotel>({
         hotelName: "",
         location: "",
         pricePerNight: 0,
-        availableRooms: 0,
         amenities: "",
+        roomTypes: [emptyRoom()],
     });
 
     useEffect(() => {
         if (hotel) {
-            setFormData(hotel);
+            setFormData({
+                ...hotel,
+                roomTypes:
+                    hotel.roomTypes && hotel.roomTypes.length > 0
+                        ? hotel.roomTypes
+                        : [emptyRoom()],
+            });
         } else {
             setFormData({
                 hotelName: "",
                 location: "",
                 pricePerNight: 0,
-                availableRooms: 0,
                 amenities: "",
+                roomTypes: [emptyRoom()],
             });
         }
     }, [hotel]);
 
-    const handleChange = (
+    const handleHotelChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
     ) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
+
+    const handleRoomChange = (
+        index: number,
+        field: keyof RoomType,
+        value: any,
+    ) => {
+        const rooms = [...formData.roomTypes];
+
+        rooms[index] = {
+            ...rooms[index],
+            [field]: value,
+        };
+
+        setFormData({
+            ...formData,
+            roomTypes: rooms,
+        });
+    };
+
+    const addRoomType = () => {
+        setFormData({
+            ...formData,
+            roomTypes: [...formData.roomTypes, emptyRoom()],
+        });
+    };
+
+    const removeRoomType = (index: number) => {
+        if (formData.roomTypes.length === 1) return;
+
+        const rooms = formData.roomTypes.filter((_, i) => i !== index);
+
+        setFormData({
+            ...formData,
+            roomTypes: rooms,
+        });
+    };
+
+    const updateImage = (
+        roomIndex: number,
+        imageIndex: number,
+        value: string
+    ) => {
+
+        const rooms = [...formData.roomTypes];
+
+        rooms[roomIndex].images[imageIndex] = value;
+
+        setFormData({
+            ...formData,
+            roomTypes: rooms,
+        });
+
+    };
+
+    const addImage = (roomIndex: number) => {
+
+        const rooms = [...formData.roomTypes];
+
+        rooms[roomIndex].images.push("");
+
+        setFormData({
+            ...formData,
+            roomTypes: rooms,
+        });
+
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         if (hotel) {
-            await edithotel(
-                hotel.id,
-                formData.hotelName,
-                formData.location,
-                formData.pricePerNight,
-                formData.availableRooms,
-                formData.amenities,
-            );
-            return;
+            await edithotel(formData);
+        } else {
+            await addhotel(formData);
         }
-        await addhotel(
-            formData.hotelName,
-            formData.location,
-            formData.pricePerNight,
-            formData.availableRooms,
-            formData.amenities,
-        );
-        if (!hotel) {
-            setFormData({
-                hotelName: "",
-                location: "",
-                pricePerNight: 0,
-                availableRooms: 0,
-                amenities: "",
-            });
-        }
+
+        setFormData({
+            hotelName: "",
+            location: "",
+            pricePerNight: 0,
+            amenities: "",
+            roomTypes: [emptyRoom()],
+        });
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <h3 className="text-lg font-semibold mb-2">
-                {hotel ? "Edit Hotel" : "Add New Hotel"}
+        <form
+            onSubmit={handleSubmit}
+            className="space-y-6 overflow-y-auto max-h-[80vh] pr-2"
+        >
+            <h3 className="text-lg font-semibold">
+                {hotel ? "Edit Hotel" : "Add Hotel"}
             </h3>
+
             <div>
-                <Label htmlFor="hotelName">Hotel Name</Label>
+                <Label>Hotel Name</Label>
+
                 <Input
-                    id="hotelName"
                     name="hotelName"
                     value={formData.hotelName}
-                    onChange={handleChange}
+                    onChange={handleHotelChange}
                     required
                 />
             </div>
+
             <div>
-                <Label htmlFor="location">Location</Label>
+                <Label>Location</Label>
+
                 <Input
-                    id="location"
                     name="location"
                     value={formData.location}
-                    onChange={handleChange}
+                    onChange={handleHotelChange}
                     required
                 />
             </div>
             <div>
-                <Label htmlFor="pricePerNight">Price Per Night</Label>
+                <Label>Base Price Per Night (₹)</Label>
+
                 <Input
-                    id="pricePerNight"
+                    type="number"
                     name="pricePerNight"
-                    type="number"
                     value={formData.pricePerNight}
-                    onChange={handleChange}
+                    onChange={handleHotelChange}
                     required
                 />
             </div>
+
             <div>
-                <Label htmlFor="availableRooms">Available Rooms</Label>
-                <Input
-                    id="availableRooms"
-                    name="availableRooms"
-                    type="number"
-                    value={formData.availableRooms}
-                    onChange={handleChange}
-                    required
-                />
-            </div>
-            <div>
-                <Label htmlFor="amenities">Amenities</Label>
+                <Label>Amenities</Label>
+
                 <Textarea
-                    id="amenities"
                     name="amenities"
                     value={formData.amenities}
-                    onChange={handleChange}
-                    required
+                    onChange={handleHotelChange}
                 />
             </div>
-            <Button type="submit">{hotel ? "Update Hotel" : "Add Hotel"}</Button>
+
+            <hr />
+
+            <h3 className="font-semibold text-lg">
+                Room Types
+            </h3>
+
+            {formData.roomTypes.map((room, index) => (
+                <div
+                    key={index}
+                    className="border rounded-lg p-4 space-y-3"
+                >
+                    <div className="flex justify-between items-center">
+                        <h4 className="font-semibold">
+                            Room {index + 1}
+                        </h4>
+
+                        {formData.roomTypes.length > 1 && (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={() => removeRoomType(index)}
+                            >
+                                Remove
+                            </Button>
+                        )}
+                    </div>
+
+                    <Input
+                        placeholder="Room Type"
+                        value={room.type}
+                        onChange={(e) =>
+                            handleRoomChange(
+                                index,
+                                "type",
+                                e.target.value,
+                            )
+                        }
+                    />
+
+                    <div>
+                        <Label>Available Rooms</Label>
+                        <Input
+                            type="number"
+                            value={room.available}
+                            onChange={(e) =>
+                                handleRoomChange(
+                                    index,
+                                    "available",
+                                    Number(e.target.value),
+                                )
+                            }
+                        />
+                    </div>
+
+                    <div>
+                        <Label>Upgrade Charge (₹)</Label>
+                        <Input
+                            type="number"
+                            value={room.upgradeCharge}
+                            onChange={(e) =>
+                                handleRoomChange(
+                                    index,
+                                    "upgradeCharge",
+                                    Number(e.target.value),
+                                )
+                            }
+                        />
+                    </div>
+
+                    <Textarea
+                        placeholder="Description"
+                        value={room.description}
+                        onChange={(e) =>
+                            handleRoomChange(
+                                index,
+                                "description",
+                                e.target.value,
+                            )
+                        }
+                    />
+                    <div>
+
+                        <Label>Images</Label>
+
+                        {room.images.map((img, imageIndex) => (
+
+                            <div
+                                key={imageIndex}
+                                className="flex gap-2 mb-2"
+                            >
+
+                                <Input
+                                    placeholder="Image URL"
+                                    value={img}
+                                    onChange={(e) =>
+                                        updateImage(
+                                            index,
+                                            imageIndex,
+                                            e.target.value
+                                        )
+                                    }
+                                />
+
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    onClick={() => {
+
+                                        const rooms = [...formData.roomTypes];
+
+                                        rooms[index].images.splice(
+                                            imageIndex,
+                                            1
+                                        );
+
+                                        setFormData({
+                                            ...formData,
+                                            roomTypes: rooms,
+                                        });
+
+                                    }}
+                                >
+
+                                    Remove
+
+                                </Button>
+
+                            </div>
+
+                        ))}
+
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => addImage(index)}
+                        >
+
+                            + Add Image
+
+                        </Button>
+
+                    </div>
+                </div>
+            ))}
+
+            <Button
+                type="button"
+                variant="secondary"
+                onClick={addRoomType}
+            >
+                + Add Room Type
+            </Button>
+
+            <Button
+                className="w-full"
+                type="submit"
+            >
+                {hotel ? "Update Hotel" : "Add Hotel"}
+            </Button>
         </form>
     );
 }
@@ -292,7 +529,6 @@ interface Flight {
     departureTime: string;
     arrivalTime: string;
     price: number;
-    availableSeats: number;
 }
 
 function AddEditFlight({ flight }: { flight: Flight | null }) {
@@ -303,7 +539,6 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
         departureTime: "",
         arrivalTime: "",
         price: 0,
-        availableSeats: 0,
     });
 
     useEffect(() => {
@@ -317,7 +552,6 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
                 departureTime: "",
                 arrivalTime: "",
                 price: 0,
-                availableSeats: 0,
             });
         }
     }, [flight]);
@@ -340,7 +574,6 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
                 formData.departureTime,
                 formData.arrivalTime,
                 formData.price,
-                formData.availableSeats,
             );
             return;
         }
@@ -351,7 +584,6 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
             formData.departureTime,
             formData.arrivalTime,
             formData.price,
-            formData.availableSeats,
         );
         if (!flight) {
             setFormData({
@@ -361,7 +593,6 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
                 departureTime: "",
                 arrivalTime: "",
                 price: 0,
-                availableSeats: 0,
             });
         }
     };
@@ -430,17 +661,6 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
                     name="price"
                     type="number"
                     value={formData.price}
-                    onChange={handleChange}
-                    required
-                />
-            </div>
-            <div>
-                <Label htmlFor="availableSeats">Available Seats</Label>
-                <Input
-                    id="availableSeats"
-                    name="availableSeats"
-                    type="number"
-                    value={formData.availableSeats}
                     onChange={handleChange}
                     required
                 />
