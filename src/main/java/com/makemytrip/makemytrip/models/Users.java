@@ -18,7 +18,8 @@ public class Users {
     private String phoneNumber;
     private String preferredSeatType;
     private String preferredRoomType;
-    private List<Booking> bookings = new ArrayList<>();;
+    private List<Booking> bookings = new ArrayList<>();
+    private List<RecommendationFeedback> recommendationFeedback = new ArrayList<>();
 
 
     public String getFirstName() {return firstName;}
@@ -62,6 +63,14 @@ public class Users {
     }
     public List<Booking> getBookings(){return bookings;}
     public void setBookings(List<Booking> bookings){this.bookings=bookings;}
+
+    public List<RecommendationFeedback> getRecommendationFeedback() {
+        return recommendationFeedback;
+    }
+
+    public void setRecommendationFeedback(List<RecommendationFeedback> recommendationFeedback) {
+        this.recommendationFeedback = recommendationFeedback;
+    }
 
 
     public static class Booking{

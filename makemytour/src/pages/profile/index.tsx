@@ -22,7 +22,23 @@ import {
     cancelBooking,
     getuserbyemail,
     getFlightStatus,
+    getRecommendations,
+    submitRecommendationFeedback,
 } from "@/api";
+
+interface Recommendation {
+    recommendationId: string;
+    type: string;
+    title: string;
+    destination: string;
+    reason: string;
+    algorithm: string;
+    confidence: number;
+    category: string;
+    price: number;
+    rating: number;
+    score: number;
+}
 
 const index = () => {
     const dispatch = useDispatch();
@@ -45,6 +61,22 @@ const index = () => {
     }, [user?.email]);
 
     useEffect(() => {
+        const loadRecommendations = async () => {
+            try {
+                if (!user?.id) return;
+
+                const data = await getRecommendations(user.id);
+
+                setRecommendations(data);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        loadRecommendations();
+    }, [user?.id]);
+
+    useEffect(() => {
         const fetchStatuses = async () => {
             if (!user?.bookings) return;
 
@@ -60,30 +92,22 @@ const index = () => {
                         const status = await getFlightStatus(booking.flightId);
 
                         statuses[booking.flightId] = status;
-                        const oldStatus =
-                            previousStatusesRef.current[
-                            booking.flightId
-                            ];
+                        const oldStatus = previousStatusesRef.current[booking.flightId];
 
                         // console.log("Old:", oldStatus);
                         // console.log("New:", status.flightStatus);
-                        if (
-                            oldStatus !== undefined &&
-                            oldStatus !== status.flightStatus
-                        ) {
+                        if (oldStatus !== undefined && oldStatus !== status.flightStatus) {
                             const message =
                                 `✈ ${booking.flightName}\n` +
                                 `Status: ${status.flightStatus.replaceAll("_", " ")}\n` +
-                                (status.delayReason
-                                    ? `Reason: ${status.delayReason}\n`
-                                    : "") +
+                                (status.delayReason ? `Reason: ${status.delayReason}\n` : "") +
                                 (status.revisedDepartureTime
                                     ? `Departure: ${new Date(
-                                        status.revisedDepartureTime
+                                        status.revisedDepartureTime,
                                     ).toLocaleTimeString()}\n`
                                     : "") +
                                 `ETA: ${new Date(
-                                    status.estimatedArrivalTime
+                                    status.estimatedArrivalTime,
                                 ).toLocaleTimeString()}`;
 
                             switch (status.flightStatus) {
@@ -112,8 +136,7 @@ const index = () => {
             }
 
             setFlightStatuses(statuses);
-            const updatedPrevious:
-                Record<string, string> = {};
+            const updatedPrevious: Record<string, string> = {};
 
             Object.entries(statuses).forEach(([flightId, status]) => {
                 if (!status) return;
@@ -123,23 +146,15 @@ const index = () => {
 
             previousStatusesRef.current = updatedPrevious;
 
-            setPreviousStatuses(
-                updatedPrevious
-            );
-            Object.values(statuses)
-                .forEach((flight: any) => {
-
-                    if (
-                        flight.flightStatus ===
-                        "DELAYED_BY_1_HOUR"
-                    ) {
-
-                        console.log(
-                            `${flight.flightName}
-            delayed by 1 hour`
-                        );
-                    }
-                });
+            setPreviousStatuses(updatedPrevious);
+            Object.values(statuses).forEach((flight: any) => {
+                if (flight.flightStatus === "DELAYED_BY_1_HOUR") {
+                    console.log(
+                        `${flight.flightName}
+            delayed by 1 hour`,
+                    );
+                }
+            });
         };
 
         fetchStatuses();
@@ -157,8 +172,11 @@ const index = () => {
     const [selectedReason, setSelectedReason] = useState<Record<string, string>>(
         {},
     );
+    const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
     const [flightStatuses, setFlightStatuses] = useState<Record<string, any>>({});
-    const [previousStatuses, setPreviousStatuses] = useState<Record<string, string>>({});
+    const [previousStatuses, setPreviousStatuses] = useState<
+        Record<string, string>
+    >({});
     const previousStatusesRef = useRef<Record<string, string>>({});
     const [userData, setUserData] = useState({
         firstName: user?.firstName ? user?.firstName : "",
@@ -220,6 +238,31 @@ const index = () => {
             ...prevState,
             [field]: value, // Update the specific field dynamically
         }));
+    };
+
+    const handleRecommendationFeedback = async (
+        recommendation: Recommendation,
+        helpful: boolean,
+    ) => {
+        try {
+            await submitRecommendationFeedback({
+                userId: user.id,
+
+                recommendationId: recommendation.recommendationId,
+
+                recommendationType: recommendation.type,
+
+                helpful,
+            });
+
+            setRecommendations((prev) =>
+                prev.filter(
+                    (r) => r.recommendationId !== recommendation.recommendationId,
+                ),
+            );
+        } catch (err) {
+            console.log(err);
+        }
     };
     return (
         <div className="min-h-screen bg-gray-50 pt-8 px-4">
@@ -348,6 +391,131 @@ const index = () => {
 
                     {/* Bookings Section */}
                     <div className="md:col-span-2">
+                        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                            <h2 className="text-2xl font-bold mb-4">Recommended For You</h2>
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                                {recommendations.length === 0 ? (
+                                    <div className="col-span-2 border rounded-xl p-6 bg-gray-50 text-center">
+                                        <p className="text-gray-600 text-lg">
+                                            No personalized recommendations yet.
+                                        </p>
+
+                                        <p className="text-gray-500 mt-2">
+                                            Book a few hotels or flights to receive recommendations
+                                            tailored for you.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    recommendations.map((recommendation) => (
+                                        <div
+                                            key={recommendation.recommendationId}
+                                            className="
+border
+rounded-xl
+p-5
+bg-white
+shadow-sm
+hover:shadow-lg
+hover:-translate-y-1
+transition-all
+duration-300
+"
+                                        >
+                                            <div className="flex justify-between">
+                                                <div>
+                                                    <h3 className="font-bold text-lg">
+                                                        {recommendation.title}
+                                                    </h3>
+                                                    <div className="mt-1 flex gap-2">
+                                                        <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded">
+                                                            {recommendation.algorithm}
+                                                        </span>
+
+                                                        {recommendation.category && (
+                                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                                                                {recommendation.category}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <p className="text-gray-500">
+                                                        {recommendation.destination}
+                                                    </p>
+                                                </div>
+
+                                                <span className="text-xs bg-blue-100 px-2 py-1 rounded h-fit">
+                                                    {recommendation.confidence}% Match
+                                                </span>
+                                            </div>
+
+                                            <div className="mt-3">
+                                                <div className="flex items-center gap-2">
+
+                                                    <span className="text-yellow-500">⭐</span>
+
+                                                    <span>{recommendation.rating.toFixed(1)}</span>
+
+                                                </div>
+
+                                                <p className="font-semibold text-lg text-red-600">
+
+                                                    ₹ {recommendation.price.toLocaleString("en-IN")}
+
+                                                </p>
+                                            </div>
+
+                                            <div className="mt-3 text-sm text-gray-600">
+                                                <p className="font-semibold text-gray-800">
+
+                                                    Why this recommendation?
+
+                                                </p>
+
+                                                <p className="text-gray-600 mt-1">
+
+                                                    {recommendation.reason}
+
+                                                </p>
+                                            </div>
+
+                                            <div className="flex gap-3 mt-4">
+                                                <button
+                                                    onClick={() =>
+                                                        router.push(
+                                                            recommendation.type === "FLIGHT"
+                                                                ? `/book-flight/${recommendation.recommendationId}`
+                                                                : `/book-hotel/${recommendation.recommendationId}`,
+                                                        )
+                                                    }
+                                                    className="bg-blue-600 text-white px-4 py-2 rounded"
+                                                >
+                                                    View Details
+                                                </button>
+
+                                                <button
+                                                    onClick={() =>
+                                                        handleRecommendationFeedback(recommendation, true)
+                                                    }
+                                                    className="border px-4 py-2 rounded"
+                                                >
+                                                    👍 Helpful
+                                                </button>
+
+                                                <button
+                                                    onClick={() =>
+                                                        handleRecommendationFeedback(recommendation, false)
+                                                    }
+                                                    className="border px-4 py-2 rounded"
+                                                >
+                                                    👎 Irrelevant
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
                         <div className="bg-white rounded-xl shadow-lg p-6">
                             <h2 className="text-2xl font-bold mb-6">My Bookings</h2>
                             <div className="space-y-6">
@@ -409,38 +577,33 @@ const index = () => {
                                                         <strong>Status:</strong>{" "}
                                                         {booking?.bookingStatus || "ACTIVE"}
                                                     </p>
-                                                    {
-                                                        booking?.type === "Flight" &&
+                                                    {booking?.type === "Flight" &&
                                                         booking?.flightId &&
                                                         booking?.bookingStatus === "ACTIVE" &&
                                                         flightStatuses[booking.flightId] && (
-
                                                             <div className="mt-4 rounded-xl border bg-white p-4 shadow-sm">
-
                                                                 <div className="flex items-center justify-between mb-3">
-
                                                                     <h4 className="font-semibold text-lg">
                                                                         ✈ Live Flight Tracking
                                                                     </h4>
 
                                                                     <span
-                                                                        className={`px-3 py-1 rounded-full text-sm font-semibold ${flightStatuses[booking.flightId].flightStatus === "ON_TIME"
+                                                                        className={`px-3 py-1 rounded-full text-sm font-semibold ${flightStatuses[booking.flightId]
+                                                                            .flightStatus === "ON_TIME"
                                                                             ? "bg-green-100 text-green-700"
-                                                                            : flightStatuses[booking.flightId].flightStatus === "BOARDING"
+                                                                            : flightStatuses[booking.flightId]
+                                                                                .flightStatus === "BOARDING"
                                                                                 ? "bg-yellow-100 text-yellow-700"
                                                                                 : "bg-red-100 text-red-700"
                                                                             }`}
                                                                     >
-                                                                        {
-                                                                            flightStatuses[booking.flightId].flightStatus
-                                                                                .replaceAll("_", " ")
-                                                                        }
+                                                                        {flightStatuses[
+                                                                            booking.flightId
+                                                                        ].flightStatus.replaceAll("_", " ")}
                                                                     </span>
-
                                                                 </div>
 
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-
                                                                     <div>
                                                                         <p className="text-gray-500 text-sm">
                                                                             Flight
@@ -463,112 +626,79 @@ const index = () => {
                                                                         </p>
                                                                     </div>
 
-                                                                    {
-                                                                        flightStatuses[booking.flightId]
-                                                                            .delayReason && (
-
+                                                                    {flightStatuses[booking.flightId]
+                                                                        .delayReason && (
                                                                             <div className="md:col-span-2">
-
                                                                                 <p className="text-gray-500 text-sm">
                                                                                     Delay Reason
                                                                                 </p>
 
                                                                                 <p className="font-medium text-red-600">
                                                                                     {
-                                                                                        flightStatuses[
-                                                                                            booking.flightId
-                                                                                        ].delayReason
+                                                                                        flightStatuses[booking.flightId]
+                                                                                            .delayReason
                                                                                     }
                                                                                 </p>
-
                                                                             </div>
-                                                                        )
-                                                                    }
-                                                                    {
-                                                                        flightStatuses[
-                                                                            booking.flightId
-                                                                        ].revisedDepartureTime && (
-
+                                                                        )}
+                                                                    {flightStatuses[booking.flightId]
+                                                                        .revisedDepartureTime && (
                                                                             <>
                                                                                 <div>
-
                                                                                     <p className="text-gray-500 text-sm">
                                                                                         Revised Departure
                                                                                     </p>
 
                                                                                     <p className="font-medium text-orange-600">
-                                                                                        {
-                                                                                            new Date(
-                                                                                                flightStatuses[
-                                                                                                    booking.flightId
-                                                                                                ].revisedDepartureTime
-                                                                                            ).toLocaleString()
-                                                                                        }
+                                                                                        {new Date(
+                                                                                            flightStatuses[booking.flightId]
+                                                                                                .revisedDepartureTime,
+                                                                                        ).toLocaleString()}
                                                                                     </p>
-
                                                                                 </div>
 
                                                                                 <div>
-
                                                                                     <p className="text-gray-500 text-sm">
                                                                                         Revised Arrival
                                                                                     </p>
 
                                                                                     <p className="font-medium text-orange-600">
-                                                                                        {
-                                                                                            new Date(
-                                                                                                flightStatuses[
-                                                                                                    booking.flightId
-                                                                                                ].revisedArrivalTime
-                                                                                            ).toLocaleString()
-                                                                                        }
+                                                                                        {new Date(
+                                                                                            flightStatuses[booking.flightId]
+                                                                                                .revisedArrivalTime,
+                                                                                        ).toLocaleString()}
                                                                                     </p>
-
                                                                                 </div>
-
                                                                             </>
-                                                                        )
-                                                                    }
+                                                                        )}
                                                                     <div>
                                                                         <p className="text-gray-500 text-sm">
                                                                             Estimated Arrival
                                                                         </p>
 
                                                                         <p className="font-medium">
-                                                                            {
-                                                                                new Date(
-                                                                                    flightStatuses[
-                                                                                        booking.flightId
-                                                                                    ].estimatedArrivalTime
-                                                                                ).toLocaleString()
-                                                                            }
+                                                                            {new Date(
+                                                                                flightStatuses[booking.flightId]
+                                                                                    .estimatedArrivalTime,
+                                                                            ).toLocaleString()}
                                                                         </p>
-
                                                                     </div>
 
                                                                     <div>
-
                                                                         <p className="text-gray-500 text-sm">
                                                                             Last Updated
                                                                         </p>
 
                                                                         <p className="font-medium">
-                                                                            {
-                                                                                new Date(
-                                                                                    flightStatuses[
-                                                                                        booking.flightId
-                                                                                    ].lastUpdated
-                                                                                ).toLocaleString()
-                                                                            }
+                                                                            {new Date(
+                                                                                flightStatuses[booking.flightId]
+                                                                                    .lastUpdated,
+                                                                            ).toLocaleString()}
                                                                         </p>
-
                                                                     </div>
-
                                                                 </div>
-
                                                             </div>
-                                                        )
-                                                    }
+                                                        )}
 
                                                     {booking?.bookingStatus === "CANCELLED" && (
                                                         <>

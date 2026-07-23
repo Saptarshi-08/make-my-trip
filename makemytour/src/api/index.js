@@ -90,6 +90,7 @@ export const addflight = async (
   flightName,
   from,
   to,
+  destinationCategory,
   departureTime,
   arrivalTime,
   price,
@@ -99,6 +100,7 @@ export const addflight = async (
       flightName,
       from,
       to,
+      destinationCategory,
       departureTime,
       arrivalTime,
       price,
@@ -115,6 +117,7 @@ export const editflight = async (
   flightName,
   from,
   to,
+  destinationCategory,
   departureTime,
   arrivalTime,
   price,
@@ -124,6 +127,7 @@ export const editflight = async (
       flightName,
       from,
       to,
+      destinationCategory,
       departureTime,
       arrivalTime,
       price,
@@ -430,6 +434,31 @@ export const freezeHotelPrice = async (userId, hotelId) => {
   try {
     const res = await axios.post(
       `${BACKEND_URL}/booking/hotel/freeze-price?userId=${userId}&hotelId=${hotelId}`,
+    );
+
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getRecommendations = async (userId) => {
+  try {
+    const res = await axios.get(
+      `${BACKEND_URL}/user/recommendations/${userId}`,
+    );
+
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const submitRecommendationFeedback = async (data) => {
+  try {
+    const res = await axios.post(
+      `${BACKEND_URL}/user/recommendation-feedback`,
+      data,
     );
 
     return res.data;

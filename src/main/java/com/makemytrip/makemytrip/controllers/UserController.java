@@ -4,7 +4,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.makemytrip.makemytrip.models.Users;
+import com.makemytrip.makemytrip.models.RecommendationFeedback;
 import com.makemytrip.makemytrip.services.UserServices;
+import com.makemytrip.makemytrip.services.RecommendationServices;
+import com.makemytrip.makemytrip.dto.RecommendationFeedbackRequest;
 
 @RestController
 @RequestMapping("/user")
@@ -12,6 +15,9 @@ import com.makemytrip.makemytrip.services.UserServices;
 public class UserController {
     @Autowired
     private UserServices userServices;
+
+    @Autowired
+    private RecommendationServices recommendationServices;
 
     @PostMapping("/login")
     public Users login(@RequestParam String email,@RequestParam String password){
@@ -32,5 +38,25 @@ public class UserController {
     @PostMapping("/edit")
     public Users editprofile(@RequestParam String id ,@RequestBody Users updatedUser){
         return userServices.editprofile(id,updatedUser);
+    }
+
+    @GetMapping("/recommendations/{userId}")
+    public ResponseEntity<?> getRecommendations(
+            @PathVariable String userId){
+
+        return ResponseEntity.ok(
+                recommendationServices.getRecommendations(userId)
+        );
+
+    }
+
+    @PostMapping("/recommendation-feedback")
+    public ResponseEntity<?> recommendationFeedback(
+            @RequestBody RecommendationFeedbackRequest request){
+
+        recommendationServices.saveFeedback(request);
+
+        return ResponseEntity.ok("Feedback Saved");
+
     }
 }

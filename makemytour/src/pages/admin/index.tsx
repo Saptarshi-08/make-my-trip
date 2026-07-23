@@ -170,6 +170,7 @@ interface Hotel {
     hotelName: string;
     location: string;
     pricePerNight: number;
+    destinationCategory: string;
     amenities: string;
     roomTypes: RoomType[];
 }
@@ -187,6 +188,7 @@ function AddEditHotel({ hotel }: { hotel: Hotel | null }) {
         hotelName: "",
         location: "",
         pricePerNight: 0,
+        destinationCategory: "",
         amenities: "",
         roomTypes: [emptyRoom()],
     });
@@ -205,6 +207,7 @@ function AddEditHotel({ hotel }: { hotel: Hotel | null }) {
                 hotelName: "",
                 location: "",
                 pricePerNight: 0,
+                destinationCategory: "",
                 amenities: "",
                 roomTypes: [emptyRoom()],
             });
@@ -212,7 +215,7 @@ function AddEditHotel({ hotel }: { hotel: Hotel | null }) {
     }, [hotel]);
 
     const handleHotelChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => {
         const { name, value } = e.target;
 
@@ -301,6 +304,7 @@ function AddEditHotel({ hotel }: { hotel: Hotel | null }) {
             hotelName: "",
             location: "",
             pricePerNight: 0,
+            destinationCategory: "",
             amenities: "",
             roomTypes: [emptyRoom()],
         });
@@ -335,6 +339,31 @@ function AddEditHotel({ hotel }: { hotel: Hotel | null }) {
                     onChange={handleHotelChange}
                     required
                 />
+            </div>
+            <div>
+                <Label>Destination Category</Label>
+
+                <select
+                    name="destinationCategory"
+                    value={formData.destinationCategory}
+                    onChange={handleHotelChange}
+                    className="w-full border rounded-md p-2"
+                    required
+                >
+                    <option value="">Select Category</option>
+
+                    <option value="BEACH">Beach</option>
+                    <option value="HILL">Hill</option>
+                    <option value="CITY">City</option>
+                    <option value="ISLAND">Island</option>
+                    <option value="ADVENTURE">Adventure</option>
+                    <option value="PILGRIMAGE">Pilgrimage</option>
+                    <option value="DESERT">Desert</option>
+                    <option value="FOREST">Forest</option>
+                    <option value="WILDLIFE">Wildlife</option>
+                    <option value="SNOW">Snow</option>
+                    <option value="LAKE">Lake</option>
+                </select>
             </div>
             <div>
                 <Label>Base Price Per Night (₹)</Label>
@@ -529,6 +558,7 @@ interface Flight {
     departureTime: string;
     arrivalTime: string;
     price: number;
+    destinationCategory: string;
 }
 
 function AddEditFlight({ flight }: { flight: Flight | null }) {
@@ -539,6 +569,7 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
         departureTime: "",
         arrivalTime: "",
         price: 0,
+        destinationCategory: "",
     });
 
     useEffect(() => {
@@ -552,11 +583,12 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
                 departureTime: "",
                 arrivalTime: "",
                 price: 0,
+                destinationCategory: "",
             });
         }
     }, [flight]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
@@ -571,6 +603,7 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
                 formData.flightName,
                 formData.from,
                 formData.to,
+                formData.destinationCategory,
                 formData.departureTime,
                 formData.arrivalTime,
                 formData.price,
@@ -581,6 +614,7 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
             formData.flightName,
             formData.from,
             formData.to,
+            formData.destinationCategory,
             formData.departureTime,
             formData.arrivalTime,
             formData.price,
@@ -593,6 +627,7 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
                 departureTime: "",
                 arrivalTime: "",
                 price: 0,
+                destinationCategory: "",
             });
         }
     };
@@ -631,6 +666,31 @@ function AddEditFlight({ flight }: { flight: Flight | null }) {
                     onChange={handleChange}
                     required
                 />
+            </div>
+            <div>
+                <Label>Destination Category</Label>
+
+                <select
+                    name="destinationCategory"
+                    value={formData.destinationCategory}
+                    onChange={handleChange}
+                    className="w-full border rounded-md p-2"
+                    required
+                >
+                    <option value="">Select Category</option>
+
+                    <option value="BEACH">Beach</option>
+                    <option value="HILL">Hill</option>
+                    <option value="CITY">City</option>
+                    <option value="ISLAND">Island</option>
+                    <option value="ADVENTURE">Adventure</option>
+                    <option value="PILGRIMAGE">Pilgrimage</option>
+                    <option value="DESERT">Desert</option>
+                    <option value="FOREST">Forest</option>
+                    <option value="WILDLIFE">Wildlife</option>
+                    <option value="SNOW">Snow</option>
+                    <option value="LAKE">Lake</option>
+                </select>
             </div>
             <div>
                 <Label htmlFor="departureTime">Departure Time</Label>

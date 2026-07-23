@@ -53,13 +53,8 @@ public class AdminController {
 
     @PostMapping("/hotel")
     public Hotel addhotel(@RequestBody Hotel hotel) {
-        double minPrice = hotel.getRoomTypes()
-                .stream()
-                .mapToDouble(RoomType::getPrice)
-                .min()
-                .orElse(0);
-
-        hotel.setPricePerNight(minPrice);
+        hotel.setBasePricePerNight(hotel.getPricePerNight());
+        hotel.setCurrentPricePerNight(hotel.getPricePerNight());
         return hotelRepository.save(hotel);
     }
 
@@ -74,6 +69,7 @@ public class AdminController {
             flight.setDepartureTime(updatedFlight.getDepartureTime());
             flight.setArrivalTime(updatedFlight.getArrivalTime());
             flight.setPrice(updatedFlight.getPrice());
+            flight.setDestinationCategory(updatedFlight.getDestinationCategory());
             // Aircraft layout is fixed
             flight.setSeatRows(30);
             flight.setSeatColumns(6);
@@ -101,13 +97,9 @@ public class AdminController {
 
             hotel.setHotelName(updatedHotel.getHotelName());
             hotel.setLocation(updatedHotel.getLocation());
-            double minPrice = updatedHotel.getRoomTypes()
-                    .stream()
-                    .mapToDouble(RoomType::getPrice)
-                    .min()
-                    .orElse(0);
-
-            hotel.setPricePerNight(minPrice);
+            hotel.setPricePerNight(updatedHotel.getPricePerNight());
+            hotel.setBasePricePerNight(updatedHotel.getPricePerNight());
+            hotel.setCurrentPricePerNight(updatedHotel.getCurrentPricePerNight());
             hotel.setAmenities(updatedHotel.getAmenities());
             hotel.setRoomTypes(updatedHotel.getRoomTypes());
 

@@ -14,6 +14,7 @@ public class Hotel {
     private String location;
     private double pricePerNight;
     private String amenities;
+    private DestinationCategory destinationCategory;
     private double averageRating = 0.0;
     private int reviewCount = 0;
     private List<RoomType> roomTypes = new ArrayList<>();
@@ -40,6 +41,14 @@ public class Hotel {
 
     public String getAmenities() {
         return amenities;
+    }
+
+    public void setDestinationCategory(DestinationCategory destinationCategory) {
+        this.destinationCategory = destinationCategory;
+    }
+
+    public DestinationCategory getDestinationCategory() {
+        return destinationCategory;
     }
 
     public String getHotelName() {

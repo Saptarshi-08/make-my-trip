@@ -13,6 +13,7 @@ public class Flight {
     private String flightName;
     private String from;
     private String to;
+    private DestinationCategory destinationCategory;
     private String departureTime;
     private String arrivalTime;
     private double price;
@@ -68,6 +69,14 @@ public class Flight {
 
     public void setTo(String to) {
         this.to = to;
+    }
+
+    public void setDestinationCategory(DestinationCategory destinationCategory) {
+        this.destinationCategory = destinationCategory;
+    }
+
+    public DestinationCategory getDestinationCategory() {
+        return destinationCategory;
     }
 
     public String getDepartureTime() {
